@@ -4,7 +4,7 @@
                  [clj-jgit "1.0.2"]
                  [org.immutant/scheduling "2.1.10"]
                  [org.clojure/java.jdbc "0.7.11"]
-                 [honeysql "1.0.444"]
+                 [com.github.seancorfield/honeysql "2.0.0-rc2"]
                  [org.postgresql/postgresql "42.2.14"]
                  [ring/ring-jetty-adapter "1.7.1"]
                  [metosin/reitit "0.5.15"]]
