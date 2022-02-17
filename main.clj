@@ -24,9 +24,9 @@
                 :password    (env :db-password)
                 :auto-commit true})
 
-(def client-config {:login (System/getenv "KNOT_GIT_USER")
-                    :pw (System/getenv "KNOT_GIT_PASSWORD")
-                    :repo (System/getenv "KNOT_GIT_REPOSITORY")})
+(def git-config {:login (env :git-user)
+                 :pw    (env :git-password)
+                 :repo  (env :git-repository)})
 
 (def <sync> identity)
 
@@ -37,7 +37,7 @@
 (defn handler [f]
   (fn [{:keys [via]}]
     (f {:status 200,
-        :body (conj via :handler)})))
+        :body   (conj via :handler)})))
 
 (def app
   (http/ring-handler
@@ -50,14 +50,14 @@
        ["/assets/*" (ring/create-resource-handler {:root "temp/files"})]])
     (ring/create-default-handler)
     {:executor reitit.interceptor.sieppari/executor}))
-     ;:interceptors [(muuntaja.interceptor/format-interceptor)]
+;:interceptors [(muuntaja.interceptor/format-interceptor)]
 
 
 (defn save-meta [meta-name content]
   (jdbc/execute! db-config (-> (sqh/insert-into :knot_meta)
-                               (sqh/values [{:meta meta-name
+                               (sqh/values [{:meta    meta-name
                                              :content content
-                                             :mtime [:now]}])
+                                             :mtime   [:now]}])
                                (sqh/on-conflict :meta)
                                (sqh/do-update-set :content :mtime)
                                sql/format))
@@ -65,8 +65,8 @@
 
 (defn load-meta [meta-name]
   (let [rs (jdbc/query db-config (sql/format {:select [:*]
-                                              :from :knot_meta
-                                              :where [:= :meta meta-name]}))]
+                                              :from   :knot_meta
+                                              :where  [:= :meta meta-name]}))]
     (if (empty? rs) nil (first rs))))
 
 (defn load-meta-content [meta-name]
@@ -81,7 +81,7 @@
 
 
 (defn git-changes []
-  (jgit/with-credentials client-config
+  (jgit/with-credentials git-config
                          (let [repo (jgit/load-repo "temp")
                                latest-commit (get-head-commit repo)
                                saved-commit (load-meta-content META-GIT-COMMIT-ID)
@@ -96,14 +96,14 @@
                                                               latest-commit))))))
 
 (defn git-clone []
-  (jgit/with-credentials client-config
-                         (jgit/git-clone (client-config :repo)
+  (jgit/with-credentials git-config
+                         (jgit/git-clone (git-config :repo)
                                          :branch "main"
                                          :dir "temp")))
 
 (defn git-pull []
   (try
-    (jgit/with-credentials client-config
+    (jgit/with-credentials git-config
                            (jgit/git-pull (jgit/load-repo "temp")))
     (catch Exception e
       (git-clone))))
@@ -114,8 +114,8 @@
 
 (defn load-piece [subject]
   (let [rs (jdbc/query db-config (sql/format {:select [:*]
-                                              :from :knot_pieces
-                                              :where [:= :subject subject]}))]
+                                              :from   :knot_pieces
+                                              :where  [:= :subject subject]}))]
     (if (empty? rs) nil (first rs))))
 
 (defn save-piece [conn subject summary content]
@@ -123,8 +123,8 @@
                                (sqh/values [{:subject subject
                                              :summary summary
                                              :content content
-                                             :ctime [:now]
-                                             :mtime [:now]}])
+                                             :ctime   [:now]
+                                             :mtime   [:now]}])
                                (sqh/on-conflict :subject)
                                (sqh/do-update-set :summary :content :mtime)
                                sql/format)))
@@ -139,18 +139,18 @@
 
 (defn remove-link-piece-from [conn id]
   (jdbc/execute! conn (sql/format {:delete-from :link_pieces
-                                   :where [:= :from_piece_id id]})))
+                                   :where       [:= :from_piece_id id]})))
 
 (defn remove-link-piece-to [conn id]
   (jdbc/execute! conn (sql/format {:delete-from :link_pieces
-                                   :where [:= :to_piece_id id]})))
+                                   :where       [:= :to_piece_id id]})))
 
 (defn remove-piece [subject]
   (jdbc/with-db-transaction [tx db-config]
                             (if-let [piece (load-piece subject)]
                               (do
                                 (jdbc/execute! tx (sql/format {:delete-from :knot_pieces
-                                                               :where [:= :id (piece :id)]}))
+                                                               :where       [:= :id (piece :id)]}))
                                 (remove-link-piece-from tx (piece :id))
                                 (remove-link-piece-to tx (piece :id))))))
 
@@ -173,9 +173,8 @@
     (save-piece db-config path "..." content)))
 
 (defn knot-remove [path action]
-  (let [content (slurp (str "temp/" path))]
-    (println "** parse ... " path action)
-    (save-piece db-config path "..." content)))
+  (remove-piece path))
+
 
 (defn knot-parse []
   (doseq [[path action] (git-changes)]
