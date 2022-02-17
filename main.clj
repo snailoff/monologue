@@ -49,9 +49,9 @@
                         :handler (handler <sync>)}}]]
        ["/assets/*" (ring/create-resource-handler {:root "temp/files"})]])
     (ring/create-default-handler)
-    {:executor reitit.interceptor.sieppari/executor
+    {:executor reitit.interceptor.sieppari/executor}))
      ;:interceptors [(muuntaja.interceptor/format-interceptor)]
-     }))
+
 
 (defn save-meta [meta-name content]
   (jdbc/execute! db-config (-> (sqh/insert-into :knot_meta)
@@ -59,7 +59,7 @@
                                              :content content
                                              :mtime [:now]}])
                                (sqh/on-conflict :meta)
-                               (sqh/do-update-set :content)
+                               (sqh/do-update-set :content :mtime)
                                sql/format))
   (println (format "** meta(%s, %s) upserted." meta-name content)))
 
@@ -88,12 +88,12 @@
                                since-commit (if (nil? saved-commit)
                                               ((last (jgit/git-log repo :all? true)) :id)
                                               (resolve-object saved-commit repo))]
-                           (if (not= (.name latest-commit) (.name since-commit))
+                           (if (not= (.name since-commit) (.name latest-commit))
                              (do
+                               ;(save-meta META-GIT-COMMIT-ID (.name latest-commit))
                                (changed-files-between-commits repo
-                                                              latest-commit
-                                                              since-commit)
-                               (save-meta META-GIT-COMMIT-ID (.name latest-commit)))))))
+                                                              since-commit
+                                                              latest-commit))))))
 
 (defn git-clone []
   (jgit/with-credentials client-config
@@ -108,12 +108,85 @@
     (catch Exception e
       (git-clone))))
 
+(defn except-md? [path]
+  (every? nil? [(re-find #"^\." path)
+                (re-find #"^files/" path)]))
+
+(defn load-piece [subject]
+  (let [rs (jdbc/query db-config (sql/format {:select [:*]
+                                              :from :knot_pieces
+                                              :where [:= :subject subject]}))]
+    (if (empty? rs) nil (first rs))))
+
+(defn save-piece [conn subject summary content]
+  (jdbc/execute! db-config (-> (sqh/insert-into :knot_pieces)
+                               (sqh/values [{:subject subject
+                                             :summary summary
+                                             :content content
+                                             :ctime [:now]
+                                             :mtime [:now]}])
+                               (sqh/on-conflict :subject)
+                               (sqh/do-update-set :summary :content :mtime)
+                               sql/format)))
+
+(defn save-link-piece [conn from-id to-id]
+  (jdbc/execute! conn (-> (sqh/insert-into :link_pieces)
+                          (sqh/values [{:from_piece_id from-id
+                                        :to_piece_id   to-id}])
+                          (sqh/on-conflict :from_piece_id :to_piece_id)
+                          sqh/do-nothing
+                          sql/format)))
+
+(defn remove-link-piece-from [conn id]
+  (jdbc/execute! conn (sql/format {:delete-from :link_pieces
+                                   :where [:= :from_piece_id id]})))
+
+(defn remove-link-piece-to [conn id]
+  (jdbc/execute! conn (sql/format {:delete-from :link_pieces
+                                   :where [:= :to_piece_id id]})))
+
+(defn remove-piece [subject]
+  (jdbc/with-db-transaction [tx db-config]
+                            (if-let [piece (load-piece subject)]
+                              (do
+                                (jdbc/execute! tx (sql/format {:delete-from :knot_pieces
+                                                               :where [:= :id (piece :id)]}))
+                                (remove-link-piece-from tx (piece :id))
+                                (remove-link-piece-to tx (piece :id))))))
+
+(comment
+
+  (let [subject "nana"
+        _ (save-piece db-config subject "su" "co")
+        p (load-piece subject)]
+    (save-link-piece db-config (p :id) 0)
+    (save-link-piece db-config 99 (p :id))
+    (remove-piece subject))
+
+  (remove-piece "lala")
+  (remove-link-piece-to db-config 25))
+
+
+(defn knot-save [path action]
+  (let [content (slurp (str "temp/" path))]
+    (println "** parse ... " path action)
+    (save-piece db-config path "..." content)))
+
+(defn knot-remove [path action]
+  (let [content (slurp (str "temp/" path))]
+    (println "** parse ... " path action)
+    (save-piece db-config path "..." content)))
 
 (defn knot-parse []
-  (if-let [files (git-changes)]
-    (doseq [file files]
-      (println file))))
-
+  (doseq [[path action] (git-changes)]
+    (println "---> " path action)
+    (if (except-md? path)
+      (cond
+        (or (= action :add)
+            (= action :edit)) (knot-save path action)
+        (= action :delete) (knot-remove path action)
+        :else (throw (Exception. (str "unknown action - " action))))
+      (println "** ignored - " path))))
 
 
 (defn reload-md []
