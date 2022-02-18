@@ -4,6 +4,7 @@
             [clj-jgit.porcelain :as jgit]
             [clj-jgit.querying :refer :all]
             [immutant.scheduling :as cron]
+            [clojure.string :as str]
             [clojure.java.jdbc :as jdbc]
             [honey.sql :as sql]
             [honey.sql.helpers :as sqh]
@@ -13,6 +14,10 @@
             [reitit.interceptor.sieppari]
             [ring.adapter.jetty :as jetty]
             [muuntaja.interceptor]))
+
+(def memo (atom {:git-commit-id-save? false}))
+(defn memo-set-git-commit-id-save? [val] (swap! memo assoc-in [:git-commit-id-save?] val))
+(defn memo-set [key val] (swap! memo assoc-in [key] val))
 
 (def META-GIT-COMMIT-ID "GIT-COMMIT-ID")
 
@@ -24,9 +29,9 @@
                 :password    (env :db-password)
                 :auto-commit true})
 
-(def git-config {:login (env :git-user)
-                 :pw    (env :git-password)
-                 :repo  (env :git-repository)})
+(def git-config {:login (System/getenv "KNOT_GIT_USER")
+                 :pw    (System/getenv "KNOT_GIT_PASSWORD")
+                 :repo  (System/getenv "KNOT_GIT_REPOSITORY")})
 
 (def <sync> identity)
 
@@ -52,6 +57,12 @@
     {:executor reitit.interceptor.sieppari/executor}))
 ;:interceptors [(muuntaja.interceptor/format-interceptor)]
 
+(defn start []
+  (jetty/run-jetty #'app {:port 1234, :join? false, :async? true})
+  (println "server running in port 1234"))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; meta
 
 (defn save-meta [meta-name content]
   (jdbc/execute! db-config (-> (sqh/insert-into :knot_meta)
@@ -74,11 +85,7 @@
     (meta-data :content) nil))
 
 
-(defn start []
-  (jetty/run-jetty #'app {:port 1234, :join? false, :async? true})
-  (println "server running in port 1234"))
-
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; git
 
 (defn git-changes []
   (jgit/with-credentials git-config
@@ -90,7 +97,8 @@
                                               (resolve-object saved-commit repo))]
                            (if (not= (.name since-commit) (.name latest-commit))
                              (do
-                               ;(save-meta META-GIT-COMMIT-ID (.name latest-commit))
+                               (if (@memo :git-commit-id-save?)
+                                 (save-meta META-GIT-COMMIT-ID (.name latest-commit)))
                                (changed-files-between-commits repo
                                                               since-commit
                                                               latest-commit))))))
@@ -112,22 +120,70 @@
   (every? nil? [(re-find #"^\." path)
                 (re-find #"^files/" path)]))
 
-(defn load-piece [subject]
-  (let [rs (jdbc/query db-config (sql/format {:select [:*]
-                                              :from   :knot_pieces
-                                              :where  [:= :subject subject]}))]
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; piece
+
+(defn load-piece [conn subject]
+  (let [rs (jdbc/query conn (sql/format {:select [:*]
+                                         :from   :knot_pieces
+                                         :where  [:= :subject subject]}))]
     (if (empty? rs) nil (first rs))))
 
 (defn save-piece [conn subject summary content]
-  (jdbc/execute! db-config (-> (sqh/insert-into :knot_pieces)
-                               (sqh/values [{:subject subject
-                                             :summary summary
-                                             :content content
-                                             :ctime   [:now]
-                                             :mtime   [:now]}])
-                               (sqh/on-conflict :subject)
-                               (sqh/do-update-set :summary :content :mtime)
-                               sql/format)))
+  (jdbc/execute! conn (-> (sqh/insert-into :knot_pieces)
+                          (sqh/values [{:subject subject
+                                        :summary summary
+                                        :content content
+                                        :ctime   [:now]
+                                        :mtime   [:now]}])
+                          (sqh/on-conflict :subject)
+                          (sqh/do-update-set :summary :content :mtime)
+                          sql/format))
+  (load-piece conn subject))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; tag
+
+(defn load-tag [conn name]
+  (let [rs (jdbc/query conn (sql/format {:select [:*]
+                                         :from   :knot_tags
+                                         :where  [:= :name name]}))]
+    (if (empty? rs) nil (first rs))))
+
+(defn save-tag [conn name content]
+  (jdbc/execute! conn (-> (sqh/insert-into :knot_tags)
+                          (sqh/values [{:name    name
+                                        :content content
+                                        :ctime   [:now]
+                                        :mtime   [:now]}])
+                          (sqh/on-conflict :name)
+                          (sqh/do-update-set :content :mtime)
+                          sql/format)))
+
+(defn save-tag-no-content [conn name]
+  (jdbc/execute! conn (-> (sqh/insert-into :knot_tags)
+                          (sqh/values [{:name  name
+                                        :ctime [:now]
+                                        :mtime [:now]}])
+                          (sqh/on-conflict :name)
+                          (sqh/do-nothing)
+                          (sqh/returning [:id])
+                          sql/format))
+  (load-tag conn name))
+
+
+
+(defn save-link-tag-piece [conn tag-id piece-id]
+  (jdbc/execute! conn (-> (sqh/insert-into :link_tag_piece)
+                          (sqh/values [{:tag_id   tag-id
+                                        :piece-id piece-id}])
+                          (sqh/on-conflict :tag_id :piece-id)
+                          sqh/do-nothing
+                          sql/format)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; link
 
 (defn save-link-piece [conn from-id to-id]
   (jdbc/execute! conn (-> (sqh/insert-into :link_pieces)
@@ -154,29 +210,29 @@
                                 (remove-link-piece-from tx (piece :id))
                                 (remove-link-piece-to tx (piece :id))))))
 
-(comment
-
-  (let [subject "nana"
-        _ (save-piece db-config subject "su" "co")
-        p (load-piece subject)]
-    (save-link-piece db-config (p :id) 0)
-    (save-link-piece db-config 99 (p :id))
-    (remove-piece subject))
-
-  (remove-piece "lala")
-  (remove-link-piece-to db-config 25))
+(defn parse-tag [piece content]
+  (doseq [tag (re-seq #"(?<=^|[^\w])#([^\s]+)" content)]
+    (let [tag-name (second tag)]
+      (jdbc/with-db-transaction [tx db-config]
+                                (let [tag (save-tag-no-content tx tag-name)]
+                                  (save-link-tag-piece tx (tag :id) (piece :id)))))))
 
 
 (defn knot-save [path action]
-  (let [content (slurp (str "temp/" path))]
+  (let [content-raw (slurp (str "temp/" path))
+        subject (str/replace path #".md" "")
+        summary (re-find #"%%\s*summary:\s*(.*) %%" content-raw)
+        content (str/replace content-raw #"%%(.*?)%%\r?\n?" "")
+        piece (save-piece db-config subject (second summary) content)]
     (println "** parse ... " path action)
-    (save-piece db-config path "..." content)))
+    (parse-tag piece content)))
+
+
 
 (defn knot-remove [path action]
   (remove-piece path))
 
-
-(defn knot-parse []
+(defn git-parse []
   (doseq [[path action] (git-changes)]
     (println "---> " path action)
     (if (except-md? path)
@@ -190,7 +246,7 @@
 
 (defn reload-md []
   (git-pull)
-  (knot-parse))
+  (git-parse))
 
 
 (defn reload-schedule []
@@ -201,6 +257,22 @@
   (reload-schedule)
   (start))
 
+
+
+(comment
+
+  (memo-set :git-commit-id-save? true)
+  (memo-set :git-commit-id-save? false)
+
+  (let [subject "nana"
+        _ (save-piece db-config subject "su" "co")
+        p (load-piece subject)]
+    (save-link-piece db-config (p :id) 0)
+    (save-link-piece db-config 99 (p :id))
+    (remove-piece subject))
+
+  (remove-piece "lala")
+  (remove-link-piece-to db-config 25))
 
 
 
