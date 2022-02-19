@@ -16,8 +16,8 @@
             [muuntaja.interceptor]))
 
 (def memo (atom {:git-commit-id-save? false}))
-(defn memo-set-git-commit-id-save? [val] (swap! memo assoc-in [:git-commit-id-save?] val))
 (defn memo-set [key val] (swap! memo assoc-in [key] val))
+(defn memo-set-git-commit-id-save? [val] (swap! memo assoc-in [:git-commit-id-save?] val))
 
 (def META-GIT-COMMIT-ID "GIT-COMMIT-ID")
 
@@ -172,8 +172,6 @@
                           sql/format))
   (load-tag conn name))
 
-
-
 (defn save-link-tag-piece [conn tag-id piece-id]
   (jdbc/execute! conn (-> (sqh/insert-into :link_tag_piece)
                           (sqh/values [{:tag_id   tag-id
@@ -181,6 +179,12 @@
                           (sqh/on-conflict :tag_id :piece-id)
                           sqh/do-nothing
                           sql/format)))
+
+(defn remove-link-tag-piece [conn piece-id]
+  (jdbc/execute! conn (sql/format {:delete-from :link_tag_piece
+                                   :where       [:= :piece_id piece-id]})))
+
+
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; link
@@ -193,29 +197,40 @@
                           sqh/do-nothing
                           sql/format)))
 
-(defn remove-link-piece-from [conn id]
-  (jdbc/execute! conn (sql/format {:delete-from :link_pieces
-                                   :where       [:= :from_piece_id id]})))
-
-(defn remove-link-piece-to [conn id]
+(defn remove-link-piece-parents [conn id]
   (jdbc/execute! conn (sql/format {:delete-from :link_pieces
                                    :where       [:= :to_piece_id id]})))
 
+(defn remove-link-piece-children [conn id]
+  (jdbc/execute! conn (sql/format {:delete-from :link_pieces
+                                   :where       [:= :from_piece_id id]})))
+
 (defn remove-piece [subject]
   (jdbc/with-db-transaction [tx db-config]
-                            (if-let [piece (load-piece subject)]
+                            (if-let [piece (load-piece tx subject)]
                               (do
                                 (jdbc/execute! tx (sql/format {:delete-from :knot_pieces
                                                                :where       [:= :id (piece :id)]}))
-                                (remove-link-piece-from tx (piece :id))
-                                (remove-link-piece-to tx (piece :id))))))
+                                (remove-link-tag-piece tx (piece :id))
+                                (remove-link-piece-parents tx (piece :id))
+                                (remove-link-piece-children tx (piece :id))))))
 
-(defn parse-tag [piece content]
-  (doseq [tag (re-seq #"(?<=^|[^\w])#([^\s]+)" content)]
-    (let [tag-name (second tag)]
-      (jdbc/with-db-transaction [tx db-config]
+(defn parse-tag [piece]
+  (jdbc/with-db-transaction [tx db-config]
+                            (remove-link-tag-piece tx (piece :id))
+                            (doseq [tag (re-seq #"(?<=^|[^\w])#([^\s]+)" (piece :content))]
+                              (let [tag-name (second tag)]
                                 (let [tag (save-tag-no-content tx tag-name)]
                                   (save-link-tag-piece tx (tag :id) (piece :id)))))))
+
+(defn parse-link [piece]
+  (jdbc/with-db-transaction [tx db-config]
+                            (remove-link-piece-children tx (piece :id))
+                            (doseq [link (re-seq #"\[\[(.*?)\]\]" (piece :content))]
+                              (if-let [target-piece (load-piece tx (second link))]
+                                (save-link-piece tx (piece :id) (target-piece :id))))))
+
+
 
 
 (defn knot-save [path action]
@@ -225,7 +240,8 @@
         content (str/replace content-raw #"%%(.*?)%%\r?\n?" "")
         piece (save-piece db-config subject (second summary) content)]
     (println "** parse ... " path action)
-    (parse-tag piece content)))
+    (parse-tag piece)
+    (parse-link piece)))
 
 
 
@@ -272,7 +288,7 @@
     (remove-piece subject))
 
   (remove-piece "lala")
-  (remove-link-piece-to db-config 25))
+  (remove-link-piece-children db-config 25))
 
 
 
