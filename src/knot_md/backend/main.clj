@@ -1,4 +1,4 @@
-(ns main
+(ns knot-md.backend.main
   (:require [environ.core :refer [env]]
             [clj-jgit.internal :refer :all]
             [clj-jgit.porcelain :as jgit]

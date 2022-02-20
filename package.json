@@ -1,0 +1,16 @@
+{
+  "name": "knot-md-clj",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "shadow-cljs watch frontend",
+    "release": "shadow-cljs release frontend",
+    "server": "shadow-cljs server",
+    "clean": "rm -rf target && rm -rf public/js"
+  },
+  "devDependencies": {
+    "shadow-cljs": "2.15.1"
+  },
+  "dependencies": {
+    "express": "^4.17.1"
+  }
+}

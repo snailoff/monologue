@@ -7,7 +7,12 @@ pom.xml.asc
 *.class
 /.lein-*
 /.nrepl-port
+.shadow-cljs
+node_modules
+public/js/
+package-lock.json
 
+# intellij
 *.iml
 .idea/
 temp/

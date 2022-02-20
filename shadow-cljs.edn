@@ -1,0 +1,6 @@
+{:dev-http {5678 "public"}
+ :source-paths ["src"]
+ :dependencies [[reagent "0.8.1"]]
+ :builds       {:frontend
+                {:target  :browser
+                 :modules {:main {:init-fn knot-md.frontend.app/-main}}}}}

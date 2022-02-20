@@ -10,5 +10,5 @@
                  [metosin/reitit "0.5.15"]]
   :plugins [[lein-environ "1.2.0"]]
   :profiles {:dev [:local-db]}
-  :source-paths ["."]
-  :main main)
+  :source-paths ["src"]
+  :main knot-md.main)
