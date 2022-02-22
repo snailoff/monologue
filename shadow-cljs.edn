@@ -1,6 +1,13 @@
-{:dev-http {5678 "public"}
- :source-paths ["src"]
- :dependencies [[reagent "0.8.1"]]
+{:source-paths ["src"]
+ :dependencies [[reagent "0.8.1"]
+                [binaryage/devtools "0.9.10"]
+                [proto-repl "0.3.1"]]
  :builds       {:frontend
                 {:target  :browser
-                 :modules {:main {:init-fn knot-md.frontend.app/-main}}}}}
+                 ;:modules {:main {:init-fn knot.frontend.app/-main}}
+
+                 :modules {:main {:entries [knot.frontend.app]}}
+
+                 :devtools {:http-root   "public"
+                            :http-port   5678}}}}
+

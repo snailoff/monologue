@@ -1,4 +1,4 @@
-(defproject knot-md-backend "0.1.0-SNAPSHOT"
+(defproject knot-backend "0.1.0-SNAPSHOT"
   :dependencies [[org.clojure/clojure "1.10.1"]
                  [environ "1.2.0"]
                  [clj-jgit "1.0.2"]
