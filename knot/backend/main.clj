@@ -44,21 +44,31 @@
     (f {:status 200,
         :body   (conj via :handler)})))
 
+;(def app
+;  (http/ring-handler
+;    (http/router
+;      [
+;       ["/api"
+;        ["/sync" {
+;                  :get {;:interceptors [(interceptor <sync> :get)]
+;                        :handler (handler <sync>)}}]]
+;       ["/assets/*" {:get {:handler (ring/create-resource-handler {:root "temp/files"})}}]])
+;    (ring/create-default-handler)
+;    {:executor reitit.interceptor.sieppari/executor}))
+
 (def app
-  (http/ring-handler
-    (http/router
-      [
-       ["/api"
-        ["/sync" {
-                  :get {;:interceptors [(interceptor <sync> :get)]
-                        :handler (handler <sync>)}}]]
-       ["/assets/*" (ring/create-resource-handler {:root "temp/files"})]])
-    (ring/create-default-handler)
-    {:executor reitit.interceptor.sieppari/executor}))
+  (ring/ring-handler
+    (ring/router
+      [["/ping" (constantly {:status 200, :body "pong"})]])
+       ;["/assets/*" (ring/create-resource-handler {:root "/public"})
+    (ring/routes
+             (ring/create-resource-handler {:path "/"})
+             (ring/create-default-handler))))
+
 ;:interceptors [(muuntaja.interceptor/format-interceptor)]
 
 (defn start []
-  (jetty/run-jetty #'app {:port 1234, :join? false, :async? true})
+  (jetty/run-jetty #'app {:port 1234, :join? false})
   (println "server running in port 1234"))
 
 
