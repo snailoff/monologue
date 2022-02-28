@@ -35,6 +35,9 @@
     (meta-data :content) nil))
 
 
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; piece
 (defn load-piece-by-id [conn id]
   (let [rs (jdbc/query conn (sql/format {:select [:*]
@@ -48,8 +51,6 @@
                                          :where  [:= :subject subject]}))]
     (if (empty? rs) nil (first rs))))
 
-(defn load-piece [id]
-  (load-piece-by-id db-config id))
 
 (defn save-piece [conn subject summary content]
   (jdbc/execute! conn (-> (sqh/insert-into :knot_pieces)
@@ -104,7 +105,6 @@
 (defn remove-link-tag-piece [conn piece-id]
   (jdbc/execute! conn (sql/format {:delete-from :link_tag_piece
                                    :where       [:= :piece_id piece-id]})))
-
 
 
 
@@ -168,3 +168,32 @@
 
 (defn knot-remove [path action]
   (remove-piece path))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; page
+
+(defn pieces-recent-one []
+  (let [rs (jdbc/query db-config (sql/format {:select [:*]
+                                              :from   :knot_pieces
+                                              :order-by [[:mtime :desc]]
+                                              :limit 1}))]
+    (if (empty? rs) nil (first rs))))
+
+(defn pieces-recent [limit]
+  (let [rs (jdbc/query db-config (sql/format {:select [:*]
+                                              :from   :knot_pieces
+                                              :order-by [[:mtime :desc]]
+                                              :limit limit}))]
+    (if (empty? rs) nil rs)))
+
+(defn pieces-one [id]
+  (load-piece-by-id db-config id))
+
+(defn tags-recent [limit]
+  (let [rs (jdbc/query db-config (sql/format {:select [:*]
+                                              :from   :knot_tags
+                                              :order-by [[:mtime :desc]]
+                                              :limit limit}))]
+    (if (empty? rs) nil rs)))
+
+

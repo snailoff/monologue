@@ -8,10 +8,10 @@
       [event]
       (.preventDefault event)
       (swap! app-state update-in [:count] inc)
-      (go (let [response (<! (http/get "/piece/89"
+      (go (let [response (<! (http/get "/api/piece/89"
                                        {:with-credentials? false}))]
-
-               (prn response))))
+               (prn ((response :body) :content))
+               (swap! app-state assoc :page ((response :body) :content)))))
 
 
 (defn decrement

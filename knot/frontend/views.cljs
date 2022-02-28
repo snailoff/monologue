@@ -8,20 +8,15 @@
       [:div
        [:h1 "A template for reagent apps"]])
 
-(defn counter
-      []
+(defn page []
       [:div
-       [:button.btn {:on-click #(decrement %)} "-"]
-       [:button {:disabled true} (get @app-state :count)]])
+       (get @app-state :page)])
 
 
 (defn main []
       [:div
        [header]
+       [page]
        [:button.btn {:on-click #(increment %)} "+"]])
 
 
-(defn app []
-      [:div
-       [header]
-       [counter]])

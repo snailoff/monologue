@@ -13,12 +13,21 @@
   (ring/ring-handler
     (ring/router
       [["/" (constantly {:status 200, :body (slurp "public/main.html")})]
-       ["/piece/:piece-id" {:get {:coercion   reitit.coercion.schema/coercion
-                                  :parameters {:path {:piece-id s/Int}}
-                                  :responses  {200 {}}
-                                  :handler    (fn [{:keys [parameters]}]
-                                                {:status 200
-                                                 :body   (mapper/load-piece (-> parameters :path :piece-id))})}}]]
+       ["/api"
+        ["/recent-pieces" {:get {:coercion   reitit.coercion.schema/coercion
+                                 :parameters {}
+                                 :responses  {200 {}}
+                                 :handler    (fn [{:keys []}]
+                                               {:status 200
+                                                :body   (mapper/pieces-recent 3)})}}]
+        ["/piece/:piece-id" {:get {:coercion   reitit.coercion.schema/coercion
+                                   :parameters {:path {:piece-id s/Int}}
+                                   :responses  {200 {}}
+                                   :handler    (fn [{:keys [parameters]}]
+                                                 {:status 200
+                                                  :body   (mapper/pieces-one (-> parameters :path :piece-id))})}}]]]
+
+
       {:data {:muuntaja   muuntaja.core/instance
               :middleware [muuntaja/format-middleware
                            rrc/coerce-exceptions-middleware
