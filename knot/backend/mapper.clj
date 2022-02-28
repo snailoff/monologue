@@ -1,4 +1,4 @@
-(ns knot.backend.librarian
+(ns knot.backend.mapper
   (:require [environ.core :refer [env]]
             [clojure.string :as str]
             [clojure.java.jdbc :as jdbc]
