@@ -8,7 +8,7 @@
       [event]
       (.preventDefault event)
       (swap! app-state update-in [:count] inc)
-      (go (let [response (<! (http/get "/ping"
+      (go (let [response (<! (http/get "/piece/89"
                                        {:with-credentials? false}))]
 
                (prn response))))

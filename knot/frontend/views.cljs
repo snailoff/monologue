@@ -12,8 +12,14 @@
       []
       [:div
        [:button.btn {:on-click #(decrement %)} "-"]
-       [:button {:disabled true} (get @app-state :count)]
+       [:button {:disabled true} (get @app-state :count)]])
+
+
+(defn main []
+      [:div
+       [header]
        [:button.btn {:on-click #(increment %)} "+"]])
+
 
 (defn app []
       [:div

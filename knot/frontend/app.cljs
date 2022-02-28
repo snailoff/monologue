@@ -3,7 +3,7 @@
             [knot.frontend.views :as views]))
 
 (defn ^:dev/after-load start []
-      (r/render-component [views/app]
+      (r/render-component [views/main]
                           (.getElementById js/document "app")))
 
 (defn ^:export main
