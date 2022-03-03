@@ -1,22 +1,28 @@
 (ns knot.frontend.views
   (:require [knot.frontend.state :refer [app-state]]
-            [knot.frontend.events :refer [increment decrement]]))
+            [knot.frontend.actions :as action]
+            [reagent.core :as reagent]))
 
 
-(defn header
-      []
-      [:div
-       [:h1 "A template for reagent apps"]])
 
-(defn page []
-      [:div
-       (get @app-state :page)])
+(defn pieces-component []
+      (reagent/create-class
+        {:display-name "pieces"
+         :component-did-mount
+         (fn [this]
+             (action/get-pieces))
+
+         :reagent-render
+         (fn [this]
+             [:div
+              [:h3 "pieces"]
+              [:ul
+               (for [piece (get @app-state :pieces)]
+                    ^{:key piece} [:li "piece - " (piece :subject)])]])}))
 
 
-(defn main []
-      [:div
-       [header]
-       [page]
-       [:button.btn {:on-click #(increment %)} "+"]])
+(defn main-page []
+      [pieces-component])
+
 
 

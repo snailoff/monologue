@@ -1,10 +1,12 @@
 (ns knot.frontend.app
-  (:require [reagent.core :as r]
+  (:require [reagent.dom :as rdom]
             [knot.frontend.views :as views]))
 
 (defn ^:dev/after-load start []
-      (r/render-component [views/main]
-                          (.getElementById js/document "app")))
+      (rdom/render
+        [views/main-page]
+        (.getElementById js/document "app")))
+
 
 (defn ^:export main
       []

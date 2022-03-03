@@ -14,12 +14,12 @@
     (ring/router
       [["/" (constantly {:status 200, :body (slurp "public/main.html")})]
        ["/api"
-        ["/recent-pieces" {:get {:coercion   reitit.coercion.schema/coercion
-                                 :parameters {}
-                                 :responses  {200 {}}
-                                 :handler    (fn [{:keys []}]
-                                               {:status 200
-                                                :body   (mapper/pieces-recent 3)})}}]
+        ["/pieces" {:get {:coercion   reitit.coercion.schema/coercion
+                          :parameters {}
+                          :responses  {200 {}}
+                          :handler    (fn [{:keys []}]
+                                        {:status 200
+                                         :body   {:pieces (mapper/pieces-recent 3)}})}}]
         ["/piece/:piece-id" {:get {:coercion   reitit.coercion.schema/coercion
                                    :parameters {:path {:piece-id s/Int}}
                                    :responses  {200 {}}
