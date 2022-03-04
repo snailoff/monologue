@@ -14,18 +14,24 @@
     (ring/router
       [["/" (constantly {:status 200, :body (slurp "public/main.html")})]
        ["/api"
-        ["/pieces" {:get {:coercion   reitit.coercion.schema/coercion
-                          :parameters {}
-                          :responses  {200 {}}
-                          :handler    (fn [{:keys []}]
-                                        {:status 200
-                                         :body   {:pieces (mapper/pieces-recent 3)}})}}]
+        ["/piece-recent-list" {:get {:coercion   reitit.coercion.schema/coercion
+                                     :parameters {}
+                                     :responses  {200 {}}
+                                     :handler    (fn [{:keys []}]
+                                                   {:status 200
+                                                    :body   {:pieces (mapper/pieces-recent 3)}})}}]
+        ["/piece-recent-one" {:get {:coercion   reitit.coercion.schema/coercion
+                                    :parameters {}
+                                    :responses  {200 {}}
+                                    :handler    (fn [{:keys []}]
+                                                  {:status 200
+                                                   :body   {:piece (mapper/pieces-recent-one)}})}}]
         ["/piece/:piece-id" {:get {:coercion   reitit.coercion.schema/coercion
                                    :parameters {:path {:piece-id s/Int}}
-                                   :responses  {200 {}}
+                                   :responses  {200 {:piece {}}}
                                    :handler    (fn [{:keys [parameters]}]
                                                  {:status 200
-                                                  :body   (mapper/pieces-one (-> parameters :path :piece-id))})}}]]]
+                                                  :body   {:piece (mapper/pieces-one (-> parameters :path :piece-id))}})}}]]]
 
 
       {:data {:muuntaja   muuntaja.core/instance

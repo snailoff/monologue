@@ -10,7 +10,9 @@
         {:display-name "pieces"
          :component-did-mount
          (fn [this]
-             (action/get-pieces))
+             (action/get-pieces)
+             (action/get-piece-recent-one)
+             (action/get-piece 89))
 
          :reagent-render
          (fn [this]
