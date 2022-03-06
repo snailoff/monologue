@@ -2,7 +2,9 @@
  :dependencies [[reagent "1.1.0"]
                 [binaryage/devtools "0.9.10"]
                 [proto-repl "0.3.1"]
-                [cljs-http "0.1.46"]]
+                [cljs-http "0.1.46"]
+                [metosin/reitit "0.5.15"]
+                [fipp "0.6.24"]]
  :builds       {:frontend
                 {:target  :browser
                  :output-dir "public/js"

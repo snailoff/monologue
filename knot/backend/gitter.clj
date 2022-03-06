@@ -6,11 +6,6 @@
             [clj-jgit.querying :refer :all]))
 
 
-
-
-
-
-
 (def memo (atom {:git-commit-id-save? false}))
 (defn memo-set [key val] (swap! memo assoc-in [key] val))
 (defn memo-set-git-commit-id-save? [val] (swap! memo assoc-in [:git-commit-id-save?] val))
@@ -60,7 +55,6 @@
 
 (defn git-parse []
   (doseq [[path action] (git-changes)]
-    (println "---> " path action)
     (if (except-md? path)
       (cond
         (or (= action :add)
