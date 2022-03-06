@@ -12,7 +12,7 @@
 (def app
   (ring/ring-handler
     (ring/router
-      [["/" (constantly {:status 200, :body (slurp "public/main.html")})]
+      [;["/" (constantly {:status 200, :body (slurp "public/main.html")})]
        ["/api"
         ["/piece-recent-list" {:get {:coercion   reitit.coercion.schema/coercion
                                      :parameters {}

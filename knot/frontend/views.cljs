@@ -9,8 +9,8 @@
          :component-did-mount (fn [this]
                                   (action/get-pieces))
          :reagent-render (fn [this]
-                             [:div
-                              [:h3 "piece list"]
+                             [:div.content
+                              [:h3.title "piece list"]
                               [:ul
                                (for [piece (get @app-state :pieces)]
                                     ^{:key piece} [:li (piece :subject)])]])}))
@@ -22,8 +22,8 @@
                                   (action/get-piece-recent-one))
 
          :reagent-render (fn [this]
-                             [:div
-                              [:h3 "piece recent one"]
+                             [:div.content
+                              [:h3.title "piece recent one"]
                               [:ul
                                (let [piece (get @app-state :piece)]
                                     [:li (piece :subject)])]])}))
