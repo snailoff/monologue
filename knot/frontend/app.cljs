@@ -22,7 +22,8 @@
                               [:ul
                                (for [piece (@app-state :pieces)]
                                     ^{:key piece}
-                                    [:li [:a {:href (rfe/href ::piece-one {:piece-id (piece :id)})} (piece :subject)]])]])}))
+                                    [:li [:a {:href (rfe/href ::piece-one {:piece-id (piece :id)})} (piece :subject)]
+                                     [:small (piece :mtime)]])]])}))
 
 
 (defn piece-one-component [match]
@@ -65,14 +66,28 @@
 
 (defn current-page []
       [:div
+       [:h1.title "knot-md"]
+       [:span.icon-text [:i.fas.fa-home] [:span "icon-home"]]
+       [:div.notification [:button.delete] "Lorem ipsum dolor sit amet, consectetur"]
+       [:span.tag.is-black "good"]
+       [:a.button.is-primary "primary"]
+       [:a.button.is-link "link"]
        [:ul
         [:li [:a {:href (rfe/href ::piece-list)} "list"]]
         [:li [:a {:href (rfe/href ::piece-recent)} "recent"]]
         [:li [:a {:href (rfe/href ::piece-one {:piece-id 85})} "piece"]]]
-       (if @match
-         (let [view (:view (:data @match))]
-              [view @match]))
-       (prn "** match" @match)])
+       [:pre (with-out-str (cljs.pprint/pprint @match))]
+       [:section.section
+        (if @match
+          (let [view (:view (:data @match))]
+               [view @match]))]
+
+       [:footer.footer
+        [:div.content.has-text-centered
+         [:p "footer"]]]])
+
+
+
 
 
 (defn ^:dev/after-load start []
