@@ -1,6 +1,8 @@
 (ns knot.frontend.app
   (:require [reagent.core :as reagent]
+            [reitit.core :as r]
             [reitit.frontend :as rf]
+            [reitit.frontend.controllers :as rfc]
             [reitit.frontend.easy :as rfe]
             [reitit.coercion.spec :as rss]
             [reagent.dom :as rdom]
@@ -10,85 +12,93 @@
 
 (defonce match (reagent/atom nil))
 
+(defn log-fn [& params]
+      (fn [_]
+          (apply js/console.log params)))
 
 (defn piece-list-component []
       (reagent/create-class
-        {:display-name "piece list"
+        {:display-name        "pieces"
          :component-did-mount (fn [this]
                                   (action/get-pieces))
-         :reagent-render (fn [this]
-                             [:div.content
-                              [:h3.title "piece list"]
-                              [:ul
-                               (for [piece (@app-state :pieces)]
-                                    ^{:key piece}
-                                    [:li [:a {:href (rfe/href ::piece-one {:piece-id (piece :id)})} (piece :subject)]
-                                     [:small (piece :mtime)]])]])}))
+         :reagent-render      (fn [this]
+                                  [:div
+                                   [:p "pieces"]
+                                   [:ul
+                                    (for [piece (@app-state :pieces)]
+                                         ^{:key piece}
+                                         [:li [:a {:href (rfe/href ::piece-one {:id (piece :id)})} (piece :subject)]
+                                          #_[:small (piece :mtime)]])]])}))
 
 
-(defn piece-one-component [match]
-      (let [{:keys [path]} (:parameters match)
-            {:keys [piece-id]} path]
-           (reagent/create-class
-             {:display-name "piece one"
-              :component-did-mount (fn [this]
-                                       (action/get-piece piece-id))
-              :reagent-render (fn [this]
+(defn piece-one-component []
+  (reagent/create-class
+    {:display-name         "piece one"
+     :component-did-update (fn [this [_ prev-argv]]
+                             (let [[_ new-argv] (reagent/argv this)
+                                   nid (-> new-argv :parameters :path :id)
+                                   prev-id (-> prev-argv :parameters :path :id)]
+                               (if (not= nid prev-id)
+                                 (action/get-piece nid))))
+
+     :component-did-mount  (fn [this]
+                             (let [[_ new-argv] (reagent/argv this)
+                                   nid (-> new-argv :parameters :path :id)]
+                               (action/get-piece nid)))
+
+     :reagent-render       (fn []
+                             (let [piece (@app-state :piece)]
+                               [:div
+                                [:h3.title (piece :subject)]
+                                [:h5.subtitle (piece :summary)]
+                                [:div.content (piece :content)]]))}))
+
+
+(defn main-component []
+      (reagent/create-class
+        {:display-name        "main recent one"
+         :component-did-mount (fn []
+                                  (action/get-piece-recent-one))
+
+         :reagent-render      (fn []
                                   (let [piece (@app-state :piece)]
                                        [:div
                                         [:h3.title (piece :subject)]
-                                        [:h5.subtitle (piece :summary)]
-                                        [:div.content (piece :content)]]))})))
-
-
-(defn piece-recent-one-component []
-      (reagent/create-class
-        {:display-name "piece recent one"
-         :component-did-mount (fn [this]
-                                  (action/get-piece-recent-one))
-
-         :reagent-render (fn [this]
-                             [:div.content
-                              [:h3.title "piece recent one"]
-                              [:ul
-                               (let [piece (get @app-state :piece)]
-                                    [:li (piece :subject)])]])}))
-
+                                        [:section (piece :content)]]))}))
 
 (def routes
   [["/piece-list" {:name ::piece-list
                    :view piece-list-component}]
-   ["/piece-recent" {:name ::piece-recent
-                           :view piece-recent-one-component}]
-   ["/piece-one/:piece-id" {:name ::piece-one
-                            :path {:piece-id int?}
-                            :view piece-one-component}]])
+   ["/main" {:name ::main
+             :view main-component}]
+   ["/piece/:id" {:name ::piece-one
+                  :parameters {:path {:id int?}}
+                  :view piece-one-component}]])
+
 
 (defn current-page []
       [:div
-       [:h1.title "knot-md"]
-       [:span.icon-text [:i.fas.fa-home] [:span "icon-home"]]
-       [:div.notification [:button.delete] "Lorem ipsum dolor sit amet, consectetur"]
-       [:span.tag.is-black "good"]
-       [:a.button.is-primary "primary"]
-       [:a.button.is-link "link"]
-       [:ul
-        [:li [:a {:href (rfe/href ::piece-list)} "list"]]
-        [:li [:a {:href (rfe/href ::piece-recent)} "recent"]]
-        [:li [:a {:href (rfe/href ::piece-one {:piece-id 85})} "piece"]]]
+       [:div.columns
+        [:div.column.is-one-quarter
+         [:h1.title "knot-md"]
+         [:ul
+          ;;[:li [:a {:href (rfe/href ::piece-list)} "list"]]
+          [:li [:a {:href (rfe/href ::main)} "main"]]]
+
+         [:br]
+         [piece-list-component]]
+
+        [:div.column
+         [:section.section
+          (if @match
+            (let [view (:view (:data @match))]
+                 [view @match])
+            [main-component])]]]
+
        [:pre (with-out-str (cljs.pprint/pprint @match))]
-       [:section.section
-        (if @match
-          (let [view (:view (:data @match))]
-               [view @match]))]
-
        [:footer.footer
-        [:div.content.has-text-centered
-         [:p "footer"]]]])
-
-
-
-
+        [:div
+         "powered by knot-md"]]])
 
 (defn ^:dev/after-load start []
       (rfe/start!
