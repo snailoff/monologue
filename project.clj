@@ -2,6 +2,7 @@
   :dependencies [[org.clojure/clojure "1.10.3"]
                  [environ "1.2.0"]
                  [clj-jgit "1.0.2"]
+                 [org.clojure/tools.logging "1.2.4"]
                  [org.immutant/scheduling "2.1.10"]
                  [org.clojure/java.jdbc "0.7.12"]
                  [com.github.seancorfield/honeysql "2.2.861"]

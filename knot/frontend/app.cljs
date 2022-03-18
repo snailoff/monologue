@@ -2,12 +2,10 @@
   (:require [reagent.core :as reagent]
             [reitit.core :as r]
             [reitit.frontend :as rf]
-            [reitit.frontend.controllers :as rfc]
             [reitit.frontend.easy :as rfe]
             [reitit.coercion.spec :as rss]
             [reagent.dom :as rdom]
-            [fipp.edn :as fedn]
-            [knot.frontend.state :refer [app-state]]
+            [knot.frontend.state :refer [s-piece s-pieces]]
             [knot.frontend.actions :as action]))
 
 (defonce match (reagent/atom nil))
@@ -16,20 +14,19 @@
       (fn [_]
           (apply js/console.log params)))
 
-(defn piece-list-component []
+(defn pieces-component []
       (reagent/create-class
         {:display-name        "pieces"
-         :component-did-mount (fn [this]
+         :component-did-mount (fn []
                                   (action/get-pieces))
-         :reagent-render      (fn [this]
+         :reagent-render      (fn []
                                   [:div
                                    [:p "pieces"]
                                    [:ul
-                                    (for [piece (@app-state :pieces)]
+                                    (for [piece @s-pieces]
                                          ^{:key piece}
                                          [:li [:a {:href (rfe/href ::piece-one {:id (piece :id)})} (piece :subject)]
-                                          #_[:small (piece :mtime)]])]])}))
-
+                                          [:small " tag."]])]])}))
 
 (defn piece-one-component []
   (reagent/create-class
@@ -47,12 +44,10 @@
                                (action/get-piece nid)))
 
      :reagent-render       (fn []
-                             (let [piece (@app-state :piece)]
-                               [:div
-                                [:h3.title (piece :subject)]
-                                [:h5.subtitle (piece :summary)]
-                                [:div.content (piece :content)]]))}))
-
+                             [:div
+                              [:h3.title (@s-piece :subject)]
+                              [:h5.subtitle (@s-piece :summary)]
+                              [:div.content (@s-piece :content)]])}))
 
 (defn main-component []
       (reagent/create-class
@@ -61,14 +56,15 @@
                                   (action/get-piece-recent-one))
 
          :reagent-render      (fn []
-                                  (let [piece (@app-state :piece)]
-                                       [:div
-                                        [:h3.title (piece :subject)]
-                                        [:section (piece :content)]]))}))
+                                [:div
+                                 [:h3.title (@s-piece :subject)]
+                                 [:h5.subtitle (@s-piece :summary)]
+                                 [:div.content (@s-piece :content)]])}))
+
 
 (def routes
-  [["/piece-list" {:name ::piece-list
-                   :view piece-list-component}]
+  [["/pieces" {:name ::pieces
+               :view pieces-component}]
    ["/main" {:name ::main
              :view main-component}]
    ["/piece/:id" {:name ::piece-one
@@ -80,13 +76,11 @@
       [:div
        [:div.columns
         [:div.column.is-one-quarter
-         [:h1.title "knot-md"]
          [:ul
-          ;;[:li [:a {:href (rfe/href ::piece-list)} "list"]]
-          [:li [:a {:href (rfe/href ::main)} "main"]]]
+          [:li [:a.title {:href (rfe/href ::main)} "knot-md"]]]
 
          [:br]
-         [piece-list-component]]
+         [pieces-component]]
 
         [:div.column
          [:section.section
@@ -95,10 +89,10 @@
                  [view @match])
             [main-component])]]]
 
-       [:pre (with-out-str (cljs.pprint/pprint @match))]
+       ;[:pre (with-out-str (cljs.pprint/pprint @match))]
        [:footer.footer
-        [:div
-         "powered by knot-md"]]])
+        [:div]]])
+
 
 (defn ^:dev/after-load start []
       (rfe/start!

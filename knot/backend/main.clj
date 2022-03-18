@@ -1,7 +1,7 @@
 (ns knot.backend.main
-  (:require [knot.backend.web :as web]
+  (:require [immutant.scheduling :as cron]
             [knot.backend.gitter :as gitter]
-            [immutant.scheduling :as cron]
+            [knot.backend.web :as web]
             [ring.adapter.jetty :as jetty]))
 
 (defn start []
