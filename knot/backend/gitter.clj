@@ -1,9 +1,10 @@
 (ns knot.backend.gitter
-  (:require [knot.backend.mapper :as data]
-            [environ.core :refer [env]]
-            [clj-jgit.internal :refer :all]
+  (:require [clj-jgit.internal :refer :all]
             [clj-jgit.porcelain :as jgit]
-            [clj-jgit.querying :refer :all]))
+            [clj-jgit.querying :refer :all]
+            [environ.core :refer [env]]
+            [knot.backend.mapper :as data]
+            [taoensso.timbre :as b]))
 
 
 (def memo (atom {:git-commit-id-save? false}))
@@ -61,7 +62,7 @@
             (= action :edit)) (data/knot-save path action)
         (= action :delete) (data/knot-remove path action)
         :else (throw (Exception. (str "unknown action - " action))))
-      (println "** ignored - " path))))
+      (b/debug "** ignored - " path))))
 
 
 (defn reload-md []

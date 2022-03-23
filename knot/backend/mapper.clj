@@ -1,9 +1,10 @@
 (ns knot.backend.mapper
-  (:require [environ.core :refer [env]]
+  (:require [clojure.java.jdbc :as jdbc]
             [clojure.string :as str]
-            [clojure.java.jdbc :as jdbc]
+            [environ.core :refer [env]]
             [honey.sql :as sql]
-            [honey.sql.helpers :as sqh]))
+            [honey.sql.helpers :as sqh]
+            [taoensso.timbre :as b]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; meta
 (def db-config {:dbtype      "postgresql"
@@ -22,7 +23,7 @@
                                (sqh/on-conflict :meta)
                                (sqh/do-update-set :content :mtime)
                                sql/format))
-  (println (format "** meta(%s, %s) upserted." meta-name content)))
+  (b/spy :info meta-name content))
 
 (defn load-meta [meta-name]
   (let [rs (jdbc/query db-config (sql/format {:select [:*]
@@ -160,7 +161,7 @@
         summary (re-find #"%%\s*summary:\s*(.*) %%" content-raw)
         content (str/replace content-raw #"%%(.*?)%%\r?\n?" "")
         piece (save-piece db-config subject (second summary) content)]
-    (println "** parse ... " path action)
+    (b/debug "** parse ... " path action)
     (parse-tag piece)
     (parse-link piece)))
 
