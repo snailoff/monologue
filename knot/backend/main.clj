@@ -7,8 +7,8 @@
 
 (defn start []
   (jetty/run-jetty #'web/app {:port 1234, :join? false})
-  (b/debug "start!")
-  (b/spy :info (* 1 2 3)))
+  (b/debug "start!"))
+
 
 
 (defn reload-schedule []

@@ -5,8 +5,8 @@
     "dev": "shadow-cljs watch frontend",
     "release": "shadow-cljs release frontend",
     "server": "shadow-cljs server",
-    "clean": "rm -rf target && rm -rf public/js",
-    "css-build": "node-sass --omit-source-map-url sass/mystyles.scss public/css/mystyles.css",
+    "clean": "rm -rf target && rm -rf resources/public/js",
+    "css-build": "node-sass --omit-source-map-url resources/sass/mystyles.scss resources/public/css/mystyles.css",
     "css-watch": "npm run css-build -- --watch"
   },
   "devDependencies": {
