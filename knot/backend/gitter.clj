@@ -49,20 +49,22 @@
     (catch Exception _
       (git-clone))))
 
-(defn except-md? [path]
-  (every? nil? [(re-find #"^\." path)
-                (re-find #"^files/" path)]))
+(defn parse-target? [path]
+  (and (every? nil? [(re-find #"^\." path)
+                     (re-find #"^/?files/" path)])
+       (every? some? [(re-find #"\.md$" path)])))
 
 
 (defn git-parse []
   (doseq [[path action] (git-changes)]
-    (if (except-md? path)
+    (if (parse-target? path)
       (cond
         (or (= action :add)
             (= action :edit)) (data/knot-save path action)
         (= action :delete) (data/knot-remove path action)
         :else (throw (Exception. (str "unknown action - " action))))
-      (b/debug "** ignored - " path))))
+      (b/info "** ignored - " path))))
+
 
 
 (defn reload-md []

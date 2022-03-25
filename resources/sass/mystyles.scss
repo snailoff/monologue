@@ -1,29 +1,30 @@
 @charset "utf-8";
 
 // Import a Google Font
-//@import url('https://fonts.googleapis.com/css?family=Nunito:400,700');
-@import url('https://fonts.googleapis.com/earlyaccess/notosanskr.css');
+@import url('https://fonts.googleapis.com/css?family=Nunito:400,700');
 
 // Set your brand colors
 $purple: #8A4D76;
-$pink: #FA7C91;
-$red: #BA6161;
+$cyan: #44d2b3;
 $beige-light: #D0D1CD;
-$beige-lighter: #EFF0EB;
-$grey: hsl(0, 0%, 48%);
+$white: #FAFAFA;
+$grey: #505050;
+$black: #000;
 
 // Update Bulma's global variables
-$family-sans-serif: "Noto Sans KR", sans-serif;
+$family-sans-serif: "Nunito", "Noto Sans KR", sans-serif;
 //$grey-dark: $brown;
 $grey-light: $beige-light;
 $primary: $purple;
-$link: $red;
+$link: $black;
+$link-hover: $cyan;
 $widescreen-enabled: false;
 $fullhd-enabled: false;
 
+$body-font-size: 0.95em;
+
 // Update some of Bulma's component variables
-$body-background-color: $beige-lighter;
-//$body-background-color: $purple;
+$body-background-color: $white;
 $text: $grey;
 $control-border-width: 2px;
 $input-border-color: transparent;

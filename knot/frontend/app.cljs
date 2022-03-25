@@ -18,15 +18,17 @@
       (reagent/create-class
         {:display-name        "pieces"
          :component-did-mount (fn []
-                                  (action/get-pieces))
+                                (action/get-pieces))
          :reagent-render      (fn []
-                                  [:div
-                                   [:p "pieces"]
-                                   [:ul
-                                    (for [piece @s-pieces]
-                                         ^{:key piece}
-                                         [:li [:a {:href (rfe/href ::piece-one {:id (piece :id)})} (piece :subject)]
-                                          [:small " tag."]])]])}))
+                                [:div
+                                 [:span.icon [:i.fas.fa-clock]]
+                                 [:ul
+                                  (for [piece @s-pieces]
+                                    ^{:key piece}
+                                    [:li [:a {:href (rfe/href ::piece-one {:id (piece :id)})} (piece :subject)]
+                                     [:a [:span.tag.p-1.ml-2 " tag."]]])
+                                  [:li "..."]]])}))
+
 
 (defn piece-one-component []
   (reagent/create-class
@@ -46,8 +48,11 @@
      :reagent-render       (fn []
                              [:div
                               [:h3.title (@s-piece :subject)]
-                              [:h5.subtitle (@s-piece :summary)]
-                              [:div.content (@s-piece :content)]])}))
+                              [:h5.subtitle.mb-2 (@s-piece :summary)]
+                              [:small.is-primary (@s-piece :mtime)]
+                              [:div.content.mt-5
+                               {:dangerouslySetInnerHTML
+                                {:__html (@s-piece :content-parsed)}}]])}))
 
 (defn main-component []
       (reagent/create-class
@@ -73,25 +78,34 @@
 
 
 (defn current-page []
-      [:div
+      [:div.container.p-3
+       [:header
+        [:div.columns
+         [:div.column.is-one-fifth
+          [:header.mb-5
+           [:figure.image
+            [:img {:src "files/roomel_coffee.jpg"}]]]]
+         [:div.column.has-text-right
+          [:p.title "knot-md"]
+          [:p "snailoff"]]]]
+
+
        [:div.columns
-        [:div.column.is-one-quarter
-         [:ul
-          [:li [:a.title {:href (rfe/href ::main)} "knot-md"]]]
-
-         [:br]
+        [:div.column.is-one-fifth
          [pieces-component]]
-
         [:div.column
-         [:section.section
+         [:section.section.mt-0.pt-0
           (if @match
             (let [view (:view (:data @match))]
                  [view @match])
             [main-component])]]]
 
        ;[:pre (with-out-str (cljs.pprint/pprint @match))]
-       [:footer.footer
-        [:div]]])
+       [:footer
+        [:p [:span.icon-text
+             [:span.icon [:i.fas.fa-copyright]]
+             [:span "monologue.me"]]]]])
+
 
 
 (defn ^:dev/after-load start []
