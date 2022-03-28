@@ -8,11 +8,11 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; meta
 (def db-config {:dbtype      "postgresql"
-                :host        (env :db-host)
-                :port        (env :db-port)
-                :dbname      (env :db-name)
-                :user        (env :db-user)
-                :password    (env :db-password)
+                :host        (System/getenv "DB_HOST")
+                :port        (System/getenv "DB_PORT")
+                :dbname      (System/getenv "DB_NAME")
+                :user        (System/getenv "DB_USER")
+                :password    (System/getenv "DB_PASSWORD")
                 :auto-commit true})
 
 (defn save-meta [meta-name content]
