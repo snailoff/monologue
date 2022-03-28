@@ -6,10 +6,11 @@
             [reitit.interceptor.sieppari]
             [reitit.coercion.schema]
             [reitit.ring.middleware.muuntaja :as muuntaja]
+            [ring.middleware.cors :refer [wrap-cors]]
             [schema.core :as s]))
 
 
-(def app
+(def app-route
   (ring/ring-handler
     (ring/router
       [["/" (constantly {:status 200, :body (slurp "resources/public/index.html")})]
@@ -42,3 +43,7 @@
     (ring/routes
       (ring/create-resource-handler {:path "/"})
       (ring/create-default-handler))))
+
+(def app
+  (wrap-cors app-route :access-control-allow-origin [#".*"]
+             :access-control-allow-methods [:get]))
