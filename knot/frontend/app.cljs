@@ -49,7 +49,7 @@
                              [:div
                               [:h3.title (@s-piece :subject)]
                               [:h5.subtitle.mb-2 (@s-piece :summary)]
-                              [:small.is-primary (@s-piece :mtime)]
+                              [:small.has-text-grey (@s-piece :mtime)]
                               [:div.content.mt-5
                                {:dangerouslySetInnerHTML
                                 {:__html (@s-piece :content-parsed)}}]])}))
@@ -84,7 +84,7 @@
          [:div.column.is-one-fifth
           [:header.mb-5
            [:figure.image
-            [:img {:src "files/roomel_coffee.jpg"}]]]]
+            [:img {:src "assets/roomel_coffee.jpg"}]]]]
          [:div.column.has-text-right
           [:p.title "knot-md"]
           [:p "snailoff"]]]]

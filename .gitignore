@@ -10,6 +10,7 @@ pom.xml.asc
 .shadow-cljs
 node_modules
 resources/public/js/
+resources/public/files/
 package-lock.json
 
 # intellij

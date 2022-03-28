@@ -19,6 +19,7 @@
         content_parsed (-> content
                            (str/replace #"#[^\s]+" "")
                            (str/replace #"\n" "<br />")
+                           (str/replace #"!\[\[(.*?)\]\]" "<figure class=\"image\"><img src=\"files/$1\" /></figure>")
                            (str/replace #"\[(.*?)\]\((.*?)\)" "<a href=\"$2\">$1</a>"))
         ctime (timef/parse custom-formatter (piece-data :ctime))
         mtime (timef/parse custom-formatter (piece-data :mtime))]
