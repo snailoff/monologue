@@ -12,6 +12,8 @@
                  [ring-cors "0.1.13"]]
 
   :plugins [[lein-environ "1.2.0"]]
-  :profiles {:dev [:local-db]}
+  :profiles {:uberjar {:aot :all}}
   :source-paths ["."]
+  :clean-targets ^{:protect false} ["target"]
   :main knot.backend.main)
+

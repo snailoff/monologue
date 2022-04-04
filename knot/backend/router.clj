@@ -1,13 +1,14 @@
-(ns knot.backend.web
+(ns knot.backend.router
   (:require [knot.backend.mapper :as mapper]
-            [environ.core :refer [env]]
             [reitit.ring :as ring]
             [reitit.ring.coercion :as rrc]
             [reitit.interceptor.sieppari]
             [reitit.coercion.schema]
             [reitit.ring.middleware.muuntaja :as muuntaja]
+            [ring.adapter.jetty :as jetty]
             [ring.middleware.cors :refer [wrap-cors]]
-            [schema.core :as s]))
+            [schema.core :as s]
+            [taoensso.timbre :as b]))
 
 
 (def app-route
@@ -45,5 +46,10 @@
       (ring/create-default-handler))))
 
 (def app
-  (wrap-cors app-route :access-control-allow-origin [#".*"]
+  (wrap-cors app-route
+             :access-control-allow-origin [#".*"]
              :access-control-allow-methods [:get]))
+
+(defn start []
+  (jetty/run-jetty app {:port 1234, :join? false})
+  (b/debug "start!"))

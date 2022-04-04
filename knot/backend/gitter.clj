@@ -3,6 +3,7 @@
             [clj-jgit.porcelain :as jgit]
             [clj-jgit.querying :refer :all]
             [environ.core :refer [env]]
+            [immutant.scheduling :as cron]
             [knot.backend.mapper :as data]
             [taoensso.timbre :as b]))
 
@@ -71,6 +72,9 @@
   (git-pull)
   (git-parse))
 
+
+(defn reload-schedule []
+  (cron/schedule #(reload-md) (cron/cron "0 */1 * ? * *")))
 
 (comment
 
