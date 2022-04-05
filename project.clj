@@ -13,7 +13,7 @@
 
   :plugins [[lein-environ "1.2.0"]]
   :profiles {:uberjar {:aot :all}}
-  :source-paths ["."]
+  :source-paths ["src"]
   :clean-targets ^{:protect false} ["target"]
   :main knot.backend.main)
 

@@ -1,6 +1,5 @@
 (ns knot.backend.main
-  (:require
-            [knot.backend.gitter :as gitter]
+  (:require [knot.backend.gitter :as gitter]
             [knot.backend.router :as router]))
 
 (defn -main

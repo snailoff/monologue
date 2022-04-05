@@ -1,19 +1,19 @@
 /target
 /classes
 /checkouts
+profiles.clj
 pom.xml
 pom.xml.asc
 *.jar
 *.class
-/.lein-repl-history
+/.lein-*
 /.nrepl-port
-.shadow-cljs
-node_modules
-resources/public/js/
-resources/public/files/
-package-lock.json
+.hgignore
+.hg/
 
 # intellij
 *.iml
 .idea/
+node_modules/
+.shadow-cljs/
 temp/
