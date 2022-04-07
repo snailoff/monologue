@@ -1,0 +1,198 @@
+(ns knot.backend.mapper
+  (:require [clojure.java.jdbc :as jdbc]
+            [clojure.string :as str]
+            [environ.core :refer [env]]
+            [honey.sql :as sql]
+            [honey.sql.helpers :as sqh]
+            [taoensso.timbre :as b]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; meta
+(def db-config {:dbtype      "postgresql"
+                :host        (System/getenv "KNOT_DB_HOST")
+                :port        (System/getenv "KNOT_DB_PORT")
+                :dbname      (System/getenv "KNOT_DB_NAME")
+                :user        (System/getenv "KNOT_DB_USER")
+                :password    (System/getenv "KNOT_DB_PASSWORD")
+                :auto-commit true})
+
+(defn save-meta [meta-name content]
+  (jdbc/execute! db-config (-> (sqh/insert-into :knot_meta)
+                               (sqh/values [{:meta    meta-name
+                                             :content content
+                                             :mtime   [:now]}])
+                               (sqh/on-conflict :meta)
+                               (sqh/do-update-set :content :mtime)
+                               sql/format))
+  (b/spy :info meta-name content))
+
+(defn load-meta [meta-name]
+  (let [rs (jdbc/query db-config (sql/format {:select [:*]
+                                              :from   :knot_meta
+                                              :where  [:= :meta meta-name]}))]
+    (if (empty? rs) nil (first rs))))
+
+(defn load-meta-content [meta-name]
+  (if-let [meta-data (load-meta meta-name)]
+    (meta-data :content) nil))
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; piece
+(defn load-piece-by-id [conn id]
+  (let [rs (jdbc/query conn (sql/format {:select [:*]
+                                         :from   :knot_pieces
+                                         :where  [:= :id id]}))]
+    (if (empty? rs) nil (first rs))))
+
+(defn load-piece-by-subject [conn subject]
+  (let [rs (jdbc/query conn (sql/format {:select [:*]
+                                         :from   :knot_pieces
+                                         :where  [:= :subject subject]}))]
+    (if (empty? rs) nil (first rs))))
+
+
+(defn save-piece [conn subject summary content]
+  (jdbc/execute! conn (-> (sqh/insert-into :knot_pieces)
+                          (sqh/values [{:subject subject
+                                        :summary summary
+                                        :content content
+                                        :ctime   [:now]
+                                        :mtime   [:now]}])
+                          (sqh/on-conflict :subject)
+                          (sqh/do-update-set :summary :content :mtime)
+                          sql/format))
+  (load-piece-by-subject conn subject))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; tag
+
+(defn load-tag [conn name]
+  (let [rs (jdbc/query conn (sql/format {:select [:*]
+                                         :from   :knot_tags
+                                         :where  [:= :name name]}))]
+    (if (empty? rs) nil (first rs))))
+
+(defn save-tag [conn name content]
+  (jdbc/execute! conn (-> (sqh/insert-into :knot_tags)
+                          (sqh/values [{:name    name
+                                        :content content
+                                        :ctime   [:now]
+                                        :mtime   [:now]}])
+                          (sqh/on-conflict :name)
+                          (sqh/do-update-set :content :mtime)
+                          sql/format)))
+
+(defn save-tag-no-content [conn name]
+  (jdbc/execute! conn (-> (sqh/insert-into :knot_tags)
+                          (sqh/values [{:name  name
+                                        :ctime [:now]
+                                        :mtime [:now]}])
+                          (sqh/on-conflict :name)
+                          (sqh/do-nothing)
+                          (sqh/returning [:id])
+                          sql/format))
+  (load-tag conn name))
+
+(defn save-link-tag-piece [conn tag-id piece-id]
+  (jdbc/execute! conn (-> (sqh/insert-into :link_tag_piece)
+                          (sqh/values [{:tag_id   tag-id
+                                        :piece-id piece-id}])
+                          (sqh/on-conflict :tag_id :piece-id)
+                          sqh/do-nothing
+                          sql/format)))
+
+(defn remove-link-tag-piece [conn piece-id]
+  (jdbc/execute! conn (sql/format {:delete-from :link_tag_piece
+                                   :where       [:= :piece_id piece-id]})))
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; link
+
+(defn save-link-piece [conn from-id to-id]
+  (jdbc/execute! conn (-> (sqh/insert-into :link_pieces)
+                          (sqh/values [{:from_piece_id from-id
+                                        :to_piece_id   to-id}])
+                          (sqh/on-conflict :from_piece_id :to_piece_id)
+                          sqh/do-nothing
+                          sql/format)))
+
+(defn remove-link-piece-parents [conn id]
+  (jdbc/execute! conn (sql/format {:delete-from :link_pieces
+                                   :where       [:= :to_piece_id id]})))
+
+(defn remove-link-piece-children [conn id]
+  (jdbc/execute! conn (sql/format {:delete-from :link_pieces
+                                   :where       [:= :from_piece_id id]})))
+
+(defn remove-piece [subject]
+  (jdbc/with-db-transaction [tx db-config]
+                            (if-let [piece (load-piece-by-subject tx subject)]
+                              (do
+                                (jdbc/execute! tx (sql/format {:delete-from :knot_pieces
+                                                               :where       [:= :id (piece :id)]}))
+                                (remove-link-tag-piece tx (piece :id))
+                                (remove-link-piece-parents tx (piece :id))
+                                (remove-link-piece-children tx (piece :id))))))
+
+(defn parse-tag [piece]
+  (jdbc/with-db-transaction [tx db-config]
+                            (remove-link-tag-piece tx (piece :id))
+                            (doseq [tag (re-seq #"(?<=^|[^\w])#([^\s]+)" (piece :content))]
+                              (let [tag-name (second tag)]
+                                (let [tag (save-tag-no-content tx tag-name)]
+                                  (save-link-tag-piece tx (tag :id) (piece :id)))))))
+
+(defn parse-link [piece]
+  (jdbc/with-db-transaction [tx db-config]
+                            (remove-link-piece-children tx (piece :id))
+                            (doseq [link (re-seq #"\[\[(.*?)\]\]" (piece :content))]
+                              (if-let [target-piece (load-piece-by-subject tx (second link))]
+                                (save-link-piece tx (piece :id) (target-piece :id))))))
+
+
+(defn knot-save [path action]
+  (let [content-raw (slurp (str "temp/" path))
+        subject (str/replace path #".md" "")
+        summary (re-find #"%%\s*summary:\s*(.*) %%" content-raw)
+        content (str/replace content-raw #"%%(.*?)%%\r?\n?" "")
+        piece (save-piece db-config subject (second summary) content)]
+    (b/debug "** parse ... " path action)
+    (parse-tag piece)
+    (parse-link piece)))
+
+
+
+(defn knot-remove [path action]
+  (remove-piece path))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; page
+
+(defn pieces-recent-one []
+  (let [rs (jdbc/query db-config (sql/format {:select [:*]
+                                              :from   :knot_pieces
+                                              :order-by [[:mtime :desc]]
+                                              :limit 1}))]
+    (if (empty? rs) nil (first rs))))
+
+(defn pieces-recent [limit]
+  (let [rs (jdbc/query db-config (sql/format {:select [:*]
+                                              :from   :knot_pieces
+                                              :order-by [[:mtime :desc]]
+                                              :limit limit}))]
+    (if (empty? rs) nil rs)))
+
+(defn pieces-one [id]
+  (load-piece-by-id db-config id))
+
+(defn tags-recent [limit]
+  (let [rs (jdbc/query db-config (sql/format {:select [:*]
+                                              :from   :knot_tags
+                                              :order-by [[:mtime :desc]]
+                                              :limit limit}))]
+    (if (empty? rs) nil rs)))
+
+
