@@ -14,8 +14,7 @@
 (def app-route
   (ring/ring-handler
     (ring/router
-      [["/" (constantly {:status 200, :body (slurp "resources/public/index.html")})]
-       ["/api"
+      [["/api"
         ["/piece-recent-list" {:get {:coercion   reitit.coercion.schema/coercion
                                      :parameters {}
                                      :responses  {200 {}}

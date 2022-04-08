@@ -21,3 +21,4 @@ temp/
 resources/public/js/
 resources/public/files/
 .firebaserc
+.firebase/
