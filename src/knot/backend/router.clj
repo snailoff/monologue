@@ -1,5 +1,6 @@
 (ns knot.backend.router
   (:require [knot.backend.mapper :as mapper]
+            [muuntaja.core :as muun]
             [reitit.ring :as ring]
             [reitit.ring.coercion :as rrc]
             [reitit.interceptor.sieppari]
@@ -35,7 +36,7 @@
                                                   :body   {:piece (mapper/pieces-one (-> parameters :path :piece-id))}})}}]]]
 
 
-      {:data {:muuntaja   muuntaja.core/instance
+      {:data {:muuntaja   muun/instance
               :middleware [muuntaja/format-middleware
                            rrc/coerce-exceptions-middleware
                            rrc/coerce-request-middleware

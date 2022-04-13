@@ -1,7 +1,6 @@
 (ns knot.backend.mapper
   (:require [clojure.java.jdbc :as jdbc]
             [clojure.string :as str]
-            [environ.core :refer [env]]
             [honey.sql :as sql]
             [honey.sql.helpers :as sqh]
             [taoensso.timbre :as b]))
@@ -74,7 +73,7 @@
                                          :where  [:= :name name]}))]
     (if (empty? rs) nil (first rs))))
 
-(defn save-tag [conn name content]
+#_(defn save-tag [conn name content]
   (jdbc/execute! conn (-> (sqh/insert-into :knot_tags)
                           (sqh/values [{:name    name
                                         :content content
@@ -135,22 +134,24 @@
                                                                :where       [:= :id (piece :id)]}))
                                 (remove-link-tag-piece tx (piece :id))
                                 (remove-link-piece-parents tx (piece :id))
-                                (remove-link-piece-children tx (piece :id))))))
+                                (remove-link-piece-children tx (piece :id)))
+                              ())))
 
 (defn parse-tag [piece]
   (jdbc/with-db-transaction [tx db-config]
                             (remove-link-tag-piece tx (piece :id))
                             (doseq [tag (re-seq #"(?<=^|[^\w])#([^\s]+)" (piece :content))]
-                              (let [tag-name (second tag)]
-                                (let [tag (save-tag-no-content tx tag-name)]
-                                  (save-link-tag-piece tx (tag :id) (piece :id)))))))
+                              (let [tag-name (second tag)
+                                    tag (save-tag-no-content tx tag-name)]
+                                (save-link-tag-piece tx (tag :id) (piece :id))))))
 
 (defn parse-link [piece]
   (jdbc/with-db-transaction [tx db-config]
                             (remove-link-piece-children tx (piece :id))
                             (doseq [link (re-seq #"\[\[(.*?)\]\]" (piece :content))]
                               (if-let [target-piece (load-piece-by-subject tx (second link))]
-                                (save-link-piece tx (piece :id) (target-piece :id))))))
+                                (save-link-piece tx (piece :id) (target-piece :id))
+                                ()))))
 
 
 (defn knot-save [path action]
@@ -165,7 +166,7 @@
 
 
 
-(defn knot-remove [path action]
+(defn knot-remove [path _]
   (remove-piece path))
 
 
@@ -188,7 +189,7 @@
 (defn pieces-one [id]
   (load-piece-by-id db-config id))
 
-(defn tags-recent [limit]
+#_(defn tags-recent [limit]
   (let [rs (jdbc/query db-config (sql/format {:select [:*]
                                               :from   :knot_tags
                                               :order-by [[:mtime :desc]]

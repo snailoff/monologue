@@ -1,8 +1,7 @@
 (ns knot.backend.gitter
-  (:require [clj-jgit.internal :refer :all]
+  (:require [clj-jgit.internal :refer [get-head-commit resolve-object]]
             [clj-jgit.porcelain :as jgit]
-            [clj-jgit.querying :refer :all]
-            [environ.core :refer [env]]
+            [clj-jgit.querying :refer [changed-files-between-commits]]
             [immutant.scheduling :as cron]
             [knot.backend.mapper :as data]
             [taoensso.timbre :as b]))
@@ -10,7 +9,6 @@
 
 (def memo (atom {:git-commit-id-save? false}))
 (defn memo-set [key val] (swap! memo assoc-in [key] val))
-(defn memo-set-git-commit-id-save? [val] (swap! memo assoc-in [:git-commit-id-save?] val))
 
 (def META-GIT-COMMIT-ID "GIT-COMMIT-ID")
 
@@ -32,10 +30,12 @@
                            (if (not= (.name since-commit) (.name latest-commit))
                              (do
                                (if (@memo :git-commit-id-save?)
-                                 (data/save-meta META-GIT-COMMIT-ID (.name latest-commit)))
+                                 (data/save-meta META-GIT-COMMIT-ID (.name latest-commit))
+                                 ())
                                (changed-files-between-commits repo
                                                               since-commit
-                                                              latest-commit))))))
+                                                              latest-commit))
+                             ()))))
 
 (defn git-clone []
   (jgit/with-credentials git-config
@@ -81,15 +81,12 @@
   (memo-set :git-commit-id-save? true)
   (memo-set :git-commit-id-save? false)
 
-  (let [subject "nana"
+  #_(let [subject "nana"
         _ (save-piece db-config subject "su" "co")
         p (load-piece subject)]
     (save-link-piece db-config (p :id) 0)
     (save-link-piece db-config 99 (p :id))
     (remove-piece subject))
 
-  (remove-piece "lala")
-  (remove-link-piece-children db-config 25))
-
-
-
+  #_(remove-piece "lala")
+  #_(remove-link-piece-children db-config 25))
