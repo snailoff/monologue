@@ -4,24 +4,15 @@
             [clj-jgit.querying :refer [changed-files-between-commits]]
             [immutant.scheduling :as cron]
             [knot.backend.mapper :as data]
+            [knot.backend.constant :refer :all]
             [taoensso.timbre :as b]))
-
-
-(def memo (atom {:git-commit-id-save? false}))
-(defn memo-set [key val] (swap! memo assoc-in [key] val))
-
-(def META-GIT-COMMIT-ID "GIT-COMMIT-ID")
-
-(def git-config {:login (System/getenv "KNOT_GIT_USER")
-                 :pw    (System/getenv "KNOT_GIT_PASSWORD")
-                 :repo  (System/getenv "KNOT_GIT_REPOSITORY")})
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; git
 
 (defn git-changes []
   (jgit/with-credentials git-config
-                         (let [repo (jgit/load-repo "temp")
+                         (let [repo (jgit/load-repo (git-config :workspace))
                                latest-commit (get-head-commit repo)
                                saved-commit (data/load-meta-content META-GIT-COMMIT-ID)
                                since-commit (if (nil? saved-commit)
@@ -41,12 +32,12 @@
   (jgit/with-credentials git-config
                          (jgit/git-clone (git-config :repo)
                                          :branch "main"
-                                         :dir "temp")))
+                                         :dir (git-config :workspace))))
 
 (defn git-pull []
   (try
     (jgit/with-credentials git-config
-                           (jgit/git-pull (jgit/load-repo "temp")))
+                           (jgit/git-pull (jgit/load-repo (git-config :workspace))))
     (catch Exception _
       (git-clone))))
 
@@ -74,6 +65,7 @@
 
 
 (defn reload-schedule []
+  (b/info "** reload")
   (cron/schedule #(reload-md) (cron/cron "0 */1 * ? * *")))
 
 (comment
@@ -82,11 +74,11 @@
   (memo-set :git-commit-id-save? false)
 
   #_(let [subject "nana"
-        _ (save-piece db-config subject "su" "co")
-        p (load-piece subject)]
-    (save-link-piece db-config (p :id) 0)
-    (save-link-piece db-config 99 (p :id))
-    (remove-piece subject))
+          _ (save-piece db-config subject "su" "co")
+          p (load-piece subject)]
+      (save-link-piece db-config (p :id) 0)
+      (save-link-piece db-config 99 (p :id))
+      (remove-piece subject))
 
   #_(remove-piece "lala")
   #_(remove-link-piece-children db-config 25))

@@ -11,14 +11,14 @@ pom.xml.asc
 .hgignore
 .hg/
 package-lock.json
-
-# intellij
+.lsp/
 *.iml
 .idea/
 node_modules/
 .shadow-cljs/
-temp/
 resources/public/js/
 resources/public/files/
 .firebaserc
 .firebase/
+.DS_Store
+.clj-kondo/

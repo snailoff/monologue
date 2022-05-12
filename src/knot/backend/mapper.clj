@@ -3,16 +3,11 @@
             [clojure.string :as str]
             [honey.sql :as sql]
             [honey.sql.helpers :as sqh]
-            [taoensso.timbre :as b]))
+            [taoensso.timbre :as b]
+            [knot.backend.constant :refer [db-config git-config]]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; meta
-(def db-config {:dbtype      "postgresql"
-                :host        (System/getenv "KNOT_DB_HOST")
-                :port        (System/getenv "KNOT_DB_PORT")
-                :dbname      (System/getenv "KNOT_DB_NAME")
-                :user        (System/getenv "KNOT_DB_USER")
-                :password    (System/getenv "KNOT_DB_PASSWORD")
-                :auto-commit true})
+
 
 (defn save-meta [meta-name content]
   (jdbc/execute! db-config (-> (sqh/insert-into :knot_meta)
@@ -74,14 +69,14 @@
     (if (empty? rs) nil (first rs))))
 
 #_(defn save-tag [conn name content]
-  (jdbc/execute! conn (-> (sqh/insert-into :knot_tags)
-                          (sqh/values [{:name    name
-                                        :content content
-                                        :ctime   [:now]
-                                        :mtime   [:now]}])
-                          (sqh/on-conflict :name)
-                          (sqh/do-update-set :content :mtime)
-                          sql/format)))
+    (jdbc/execute! conn (-> (sqh/insert-into :knot_tags)
+                            (sqh/values [{:name    name
+                                          :content content
+                                          :ctime   [:now]
+                                          :mtime   [:now]}])
+                            (sqh/on-conflict :name)
+                            (sqh/do-update-set :content :mtime)
+                            sql/format)))
 
 (defn save-tag-no-content [conn name]
   (jdbc/execute! conn (-> (sqh/insert-into :knot_tags)
@@ -155,7 +150,7 @@
 
 
 (defn knot-save [path action]
-  (let [content-raw (slurp (str "temp/" path))
+  (let [content-raw (slurp (str (git-config :workspace) "/" path))
         subject (str/replace path #".md" "")
         summary (re-find #"%%\s*summary:\s*(.*) %%" content-raw)
         content (str/replace content-raw #"%%(.*?)%%\r?\n?" "")
@@ -173,27 +168,27 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; page
 
 (defn pieces-recent-one []
-  (let [rs (jdbc/query db-config (sql/format {:select [:*]
-                                              :from   :knot_pieces
+  (let [rs (jdbc/query db-config (sql/format {:select   [:*]
+                                              :from     :knot_pieces
                                               :order-by [[:mtime :desc]]
-                                              :limit 1}))]
+                                              :limit    1}))]
     (if (empty? rs) nil (first rs))))
 
 (defn pieces-recent [limit]
-  (let [rs (jdbc/query db-config (sql/format {:select [:*]
-                                              :from   :knot_pieces
+  (let [rs (jdbc/query db-config (sql/format {:select   [:*]
+                                              :from     :knot_pieces
                                               :order-by [[:mtime :desc]]
-                                              :limit limit}))]
+                                              :limit    limit}))]
     (if (empty? rs) nil rs)))
 
 (defn pieces-one [id]
   (load-piece-by-id db-config id))
 
 #_(defn tags-recent [limit]
-  (let [rs (jdbc/query db-config (sql/format {:select [:*]
-                                              :from   :knot_tags
-                                              :order-by [[:mtime :desc]]
-                                              :limit limit}))]
-    (if (empty? rs) nil rs)))
+    (let [rs (jdbc/query db-config (sql/format {:select   [:*]
+                                                :from     :knot_tags
+                                                :order-by [[:mtime :desc]]
+                                                :limit    limit}))]
+      (if (empty? rs) nil rs)))
 
 
