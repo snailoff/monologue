@@ -18,21 +18,21 @@
           (str/replace #"0" "o")
           (str/replace #"^.*?/" "")))
 
-(defn set-pieces [pieces-data]
+(defn set-pieces [res-data]
       (reset! s-pieces
-              (map #(assoc % :subject (-> (% :subject) o2o)) pieces-data)))
-(defn set-piece [piece-data]
-      (let [{:keys [content]} piece-data
+              (map #(assoc % :subject (-> (% :subject) o2o)) res-data)))
+(defn set-piece [res-data]
+      (let [{:keys [content]} res-data
 
             content_parsed (-> content
                                (str/replace #"#[^\s]+" "")
                                (str/replace #"\n" "<br />")
                                (str/replace #"!\[\[(.*?)\]\]" "<figure class=\"image\"><img src=\"files/$1\" /></figure>")
                                (str/replace #"\[(.*?)\]\((.*?)\)" "<a href=\"$2\">$1</a>"))
-            ctime (timef/parse custom-formatter (piece-data :ctime))
-            mtime (timef/parse custom-formatter (piece-data :mtime))]
-           (reset! s-piece (conj piece-data
-                                 {:subject        (-> (piece-data :subject) o2o)
+            ctime (timef/parse custom-formatter (res-data :ctime))
+            mtime (timef/parse custom-formatter (res-data :mtime))]
+           (reset! s-piece (conj res-data
+                                 {:subject        (-> (res-data :subject) o2o)
                                   :content-parsed content_parsed
                                   :ctime          (timef/unparse knot-time-format ctime)
                                   :mtime          (timef/unparse knot-time-format mtime)}))

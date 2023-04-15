@@ -48,7 +48,7 @@
 
      :reagent-render       (fn []
                              [:div
-                              [:h3.title (@s-piece :subject)]
+                              [:strong (@s-piece :subject)]
                               [:h5.subtitle.mb-2 (@s-piece :summary)]
                               #_[:small.has-text-grey (@s-piece :mtime)]
                               [:div.content.mt-5

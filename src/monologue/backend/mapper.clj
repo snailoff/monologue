@@ -52,12 +52,10 @@
                           (sqh/values [{:subject (data :subject)
                                         :summary (data :summary)
                                         :content (data :content)
-                                        :realmd  (data :realmd)
-                                        :reald   (data :reald)
                                         :ctime   [:now]
                                         :mtime   [:now]}])
                           (sqh/on-conflict :subject)
-                          (sqh/do-update-set :summary :content :mtime :realmd :reald)
+                          (sqh/do-update-set :summary :content :mtime)
                           sql/format))
   (load-piece-by-subject conn (data :subject)))
 
@@ -158,15 +156,9 @@
         subject (str/replace path #".md" "")
         summary (re-find #"%%\s*summary:\s*(.*) %%" content-raw)
         content (str/replace content-raw #"%%(.*?)%%\r?\n?" "")
-        realmd (if (re-matches #"^.*[0-9]{12}.*$" path)
-                 (str/replace path #"^.*20[0-9]{2}(....)[0-9]{4}.*$" "$1") "mmdd")
-        reald (if (re-matches #"^.*[0-9]{12}.*$" path)
-                (str/replace path #"^.*20[0-9]{4}(..)[0-9]{4}.*$" "$1") "dd")
         piece (save-piece db-config {:subject subject
                                      :summary (second summary)
-                                     :content content
-                                     :realmd  realmd
-                                     :reald   reald})]
+                                     :content content })]
     (parse-tag piece)
     (parse-link piece)))
 
