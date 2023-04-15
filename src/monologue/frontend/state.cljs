@@ -13,20 +13,28 @@
 (def custom-formatter (timef/formatter "yyyy-MM-dd'T'hh:mm:ss'Z"))
 (def knot-time-format (timef/formatter "yyyy.MM.dd hh:mm:ss"))
 
-(defn set-piece [piece-data]
-  (let [{:keys [content]} piece-data
+(defn o2o [subject]
+      (-> subject
+          (str/replace #"0" "o")
+          (str/replace #"^.*?/" "")))
 
-        content_parsed (-> content
-                           (str/replace #"#[^\s]+" "")
-                           (str/replace #"\n" "<br />")
-                           (str/replace #"!\[\[(.*?)\]\]" "<figure class=\"image\"><img src=\"files/$1\" /></figure>")
-                           (str/replace #"\[(.*?)\]\((.*?)\)" "<a href=\"$2\">$1</a>"))
-        ctime (timef/parse custom-formatter (piece-data :ctime))
-        mtime (timef/parse custom-formatter (piece-data :mtime))]
-    (prn (timef/unparse knot-time-format ctime))
-    (reset! s-piece (conj piece-data
-                          {:content-parsed content_parsed
-                           :ctime (timef/unparse knot-time-format ctime)
-                           :mtime (timef/unparse knot-time-format mtime)}))
-    (prn @s-piece)))
+(defn set-pieces [pieces-data]
+      (reset! s-pieces
+              (map #(assoc % :subject (-> (% :subject) o2o)) pieces-data)))
+(defn set-piece [piece-data]
+      (let [{:keys [content]} piece-data
+
+            content_parsed (-> content
+                               (str/replace #"#[^\s]+" "")
+                               (str/replace #"\n" "<br />")
+                               (str/replace #"!\[\[(.*?)\]\]" "<figure class=\"image\"><img src=\"files/$1\" /></figure>")
+                               (str/replace #"\[(.*?)\]\((.*?)\)" "<a href=\"$2\">$1</a>"))
+            ctime (timef/parse custom-formatter (piece-data :ctime))
+            mtime (timef/parse custom-formatter (piece-data :mtime))]
+           (reset! s-piece (conj piece-data
+                                 {:subject        (-> (piece-data :subject) o2o)
+                                  :content-parsed content_parsed
+                                  :ctime          (timef/unparse knot-time-format ctime)
+                                  :mtime          (timef/unparse knot-time-format mtime)}))
+           #_(prn @s-piece)))
 

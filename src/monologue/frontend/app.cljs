@@ -25,8 +25,9 @@
                                  [:ul
                                   (for [piece @s-pieces]
                                     ^{:key piece}
-                                    [:li [:a {:href (rfe/href ::piece-one {:id (piece :id)})} (piece :subject)]
-                                     [:a [:span.tag.p-1.ml-2 " tag."]]])
+                                    [:li [:a {:href (rfe/href ::piece-one {:id (piece :id)})}
+                                          (piece :subject)]
+                                     #_[:a [:span.tag.p-1.ml-2 " tag."]]])
                                   [:li "..."]]])}))
 
 
@@ -49,7 +50,7 @@
                              [:div
                               [:h3.title (@s-piece :subject)]
                               [:h5.subtitle.mb-2 (@s-piece :summary)]
-                              [:small.has-text-grey (@s-piece :mtime)]
+                              #_[:small.has-text-grey (@s-piece :mtime)]
                               [:div.content.mt-5
                                {:dangerouslySetInnerHTML
                                 {:__html (@s-piece :content-parsed)}}]])}))
@@ -61,10 +62,10 @@
                                   (action/get-piece-recent-one))
 
          :reagent-render      (fn []
-                                [:div
-                                 [:h3.title (@s-piece :subject)]
-                                 [:h5.subtitle (@s-piece :summary)]
-                                 [:div.content (@s-piece :content)]])}))
+                                  [:div
+                                   [:h3.title (@s-piece :subject)]
+                                   [:h5.subtitle (@s-piece :summary)]
+                                   [:div.content (@s-piece :content)]])}))
 
 
 (def routes
@@ -72,9 +73,9 @@
                :view pieces-component}]
    ["/main" {:name ::main
              :view main-component}]
-   ["/piece/:id" {:name ::piece-one
+   ["/piece/:id" {:name       ::piece-one
                   :parameters {:path {:id int?}}
-                  :view piece-one-component}]])
+                  :view       piece-one-component}]])
 
 
 (defn current-page []
@@ -86,8 +87,8 @@
            [:figure.image
             [:img {:src "assets/roomel_coffee.jpg"}]]]]
          [:div.column.has-text-right
-          [:p.title "knot-md"]
-          [:p "snailoff"]]]]
+          [:p.title "monologue"]
+          [:p "snail"]]]]
 
 
        [:div.columns
