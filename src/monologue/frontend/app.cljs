@@ -5,8 +5,8 @@
             [reitit.frontend.easy :as rfe]
             [reitit.coercion.spec :as rss]
             [reagent.dom :as rdom]
-            [knot.frontend.state :refer [s-piece s-pieces]]
-            [knot.frontend.actions :as action]))
+            [monologue.frontend.state :refer [s-piece s-pieces]]
+            [monologue.frontend.actions :as action]))
 
 (defonce match (reagent/atom nil))
 

@@ -56,6 +56,14 @@
         (= action :delete) (data/knot-remove path action)
         :else (throw (Exception. (str "unknown action - " action))))
       (b/info "** ignored - " path))))
+(comment
+  (doseq [[path action] (git-changes)]
+    (println "** change : " path )
+    )
+
+  (git-changes)
+  (git-parse)
+  )
 
 
 
@@ -69,7 +77,12 @@
   (cron/schedule #(reload-md) (cron/cron "0 */1 * ? * *")))
 
 (comment
+  (git-parse)
+  (git-changes)
+  (git-pull)
+
   (reload-md)
+
 
   (memo-set :git-commit-id-save? true)
   (memo-set :git-commit-id-save? false)

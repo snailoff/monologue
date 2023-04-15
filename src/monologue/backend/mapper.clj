@@ -47,17 +47,19 @@
     (if (empty? rs) nil (first rs))))
 
 
-(defn save-piece [conn subject summary content]
+(defn save-piece [conn data]
   (jdbc/execute! conn (-> (sqh/insert-into :knot_pieces)
-                          (sqh/values [{:subject subject
-                                        :summary summary
-                                        :content content
+                          (sqh/values [{:subject (data :subject)
+                                        :summary (data :summary)
+                                        :content (data :content)
+                                        :realmd  (data :realmd)
+                                        :reald   (data :reald)
                                         :ctime   [:now]
                                         :mtime   [:now]}])
                           (sqh/on-conflict :subject)
-                          (sqh/do-update-set :summary :content :mtime)
+                          (sqh/do-update-set :summary :content :mtime :realmd :reald)
                           sql/format))
-  (load-piece-by-subject conn subject))
+  (load-piece-by-subject conn (data :subject)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; tag
@@ -150,14 +152,33 @@
 
 
 (defn knot-save [path action]
+  (println "** knot-save : " path action)
+  (b/info (slurp (str (git-config :workspace) "/" path)))
   (let [content-raw (slurp (str (git-config :workspace) "/" path))
         subject (str/replace path #".md" "")
         summary (re-find #"%%\s*summary:\s*(.*) %%" content-raw)
         content (str/replace content-raw #"%%(.*?)%%\r?\n?" "")
-        piece (save-piece db-config subject (second summary) content)]
-    (b/debug "** parse ... " path action)
+        realmd (if (re-matches #"^.*[0-9]{12}.*$" path)
+                 (str/replace path #"^.*20[0-9]{2}(....)[0-9]{4}.*$" "$1") "mmdd")
+        reald (if (re-matches #"^.*[0-9]{12}.*$" path)
+                (str/replace path #"^.*20[0-9]{4}(..)[0-9]{4}.*$" "$1") "dd")
+        piece (save-piece db-config {:subject subject
+                                     :summary (second summary)
+                                     :content content
+                                     :realmd  realmd
+                                     :reald   reald})]
     (parse-tag piece)
     (parse-link piece)))
+
+(comment
+  (re-matches #"^.*[0-9]{12}.*$" "2024/202404142323.md")
+
+  (let [str "index.md" #_"2023/202304151432.md"]
+    (println (if (re-matches #"^.*[0-9]{12}.*$" str)
+               (str/replace str #"^.*20[0-9]{2}(....)[0-9]{4}.*$" "$1") "no"))
+    #_(println (str/replace str #"^.*20[0-9]{4}(..)[0-9]{4}.*$" "$1"))
+    )
+  )
 
 
 
