@@ -4,8 +4,10 @@
             [honey.sql :as sql]
             [honey.sql.helpers :as sqh]
             [taoensso.timbre :as b]
+            [nano-id.core :refer [custom]]
             [monologue.backend.constant :refer [db-config git-config]]))
 
+(def nano-pid (custom "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" 15))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; meta
 
 
@@ -49,7 +51,8 @@
 
 (defn save-piece [conn data]
   (jdbc/execute! conn (-> (sqh/insert-into :knot_pieces)
-                          (sqh/values [{:subject (data :subject)
+                          (sqh/values [{:id (nano-pid)
+                                        :subject (data :subject)
                                         :summary (data :summary)
                                         :content (data :content)
                                         :ctime   [:now]

@@ -74,7 +74,7 @@
    ["/main" {:name ::main
              :view main-component}]
    ["/piece/:id" {:name       ::piece-one
-                  :parameters {:path {:id int?}}
+                  :parameters {:path {:id string?}}
                   :view       piece-one-component}]])
 
 

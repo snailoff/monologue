@@ -29,7 +29,7 @@
                                                   {:status 200
                                                    :body   {:piece (mapper/pieces-recent-one)}})}}]
         ["/piece/:piece-id" {:get {:coercion   reitit.coercion.schema/coercion
-                                   :parameters {:path {:piece-id s/Int}}
+                                   :parameters {:path {:piece-id s/Str}}
                                    :responses  {200 {:piece {}}}
                                    :handler    (fn [{:keys [parameters]}]
                                                  {:status 200
