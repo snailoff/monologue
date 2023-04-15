@@ -1,6 +1,6 @@
 {:local-db {:env {:db-host        "localhost"
-                  :db-port        "65432"
-                  :db-name        "knotmd"
-                  :db-user        "knot"
-                  :db-password    "knot"}}}
+                  :db-port        "5432"
+                  :db-name        "monologue"
+                  :db-user        "mono"
+                  :db-password    "mono"}}}
 

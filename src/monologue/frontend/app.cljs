@@ -1,4 +1,4 @@
-(ns knot.frontend.app
+(ns monologue.frontend.app
   (:require [reagent.core :as reagent]
             [reitit.core :as r]
             [reitit.frontend :as rf]

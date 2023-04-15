@@ -1,10 +1,10 @@
-(ns knot.backend.mapper
+(ns monologue.backend.mapper
   (:require [clojure.java.jdbc :as jdbc]
             [clojure.string :as str]
             [honey.sql :as sql]
             [honey.sql.helpers :as sqh]
             [taoensso.timbre :as b]
-            [knot.backend.constant :refer [db-config git-config]]))
+            [monologue.backend.constant :refer [db-config git-config]]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; meta
 

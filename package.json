@@ -1,5 +1,5 @@
 {
-  "name": "knot-md-clj",
+  "name": "monologue",
   "version": "1.0.0",
   "scripts": {
     "dev": "shadow-cljs watch frontend",

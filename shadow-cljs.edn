@@ -10,9 +10,9 @@
  :builds       {:frontend
                 {:target  :browser
                  :output-dir "resources/public/js"
-                 ;:modules {:main {:init-fn knot.frontend.app/-main}}
+                 ;:modules {:main {:init-fn monologue.frontend.app/-main}}
 
-                 :modules {:main {:entries [knot.frontend.app]}}
+                 :modules {:main {:entries [monologue.frontend.app]}}
 
                  :devtools {:http-root   "resources/public"
                             :http-port   5678}}}}

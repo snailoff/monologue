@@ -1,4 +1,4 @@
-(ns knot.frontend.actions
+(ns monologue.frontend.actions
   (:require-macros [cljs.core.async.macros :refer [go]])
   (:require [knot.frontend.state :as state :refer [s-piece s-pieces]]
             [cljs-http.client :as http]

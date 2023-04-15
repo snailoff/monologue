@@ -1,10 +1,10 @@
-(ns knot.backend.gitter
+(ns monologue.backend.gitter
   (:require [clj-jgit.internal :refer [get-head-commit resolve-object]]
             [clj-jgit.porcelain :as jgit]
             [clj-jgit.querying :refer [changed-files-between-commits]]
             [immutant.scheduling :as cron]
-            [knot.backend.mapper :as data]
-            [knot.backend.constant :refer :all]
+            [monologue.backend.mapper :as data]
+            [monologue.backend.constant :refer :all]
             [taoensso.timbre :as b]))
 
 
@@ -69,6 +69,7 @@
   (cron/schedule #(reload-md) (cron/cron "0 */1 * ? * *")))
 
 (comment
+  (reload-md)
 
   (memo-set :git-commit-id-save? true)
   (memo-set :git-commit-id-save? false)

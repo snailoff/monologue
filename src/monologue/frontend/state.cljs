@@ -1,4 +1,4 @@
-(ns knot.frontend.state
+(ns monologue.frontend.state
   (:require [clojure.string :as str]
             [cljs-time.core :as time]
             [cljs-time.format :as timef]
