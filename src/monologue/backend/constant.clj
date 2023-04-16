@@ -13,7 +13,7 @@
                  :repo      (System/getenv "MONOLOGUE_GIT_REPOSITORY")
                  :workspace (System/getenv "MONOLOGUE_GIT_WORKSPACE")})
 
-(def memo (atom {:git-commit-id-save? false}))
+(def memo (atom {:git-commit-id-save? true}))
 (defn memo-set [key val] (swap! memo assoc-in [key] val))
 
 (def META-GIT-COMMIT-ID "GIT-COMMIT-ID")
