@@ -4,7 +4,7 @@
             [cljs-http.client :as http]
             [cljs.core.async :refer [<!]]))
 
-(def backend "http://localhost:1234")
+(def backend "https://b.monologue.me")
 
 (defn get-pieces []
       (go (let [response (<! (http/get (str backend "/api/piece-recent-list")
