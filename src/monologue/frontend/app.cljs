@@ -10,10 +10,10 @@
 
 (defonce match (reagent/atom nil))
 (defonce audio (reagent/atom nil))
-(def music (reagent/atom {:audio   nil
-                          :path    nil
-                          :title   nil
-                          :playing false}))
+(defonce music (reagent/atom {:audio   nil
+                              :path    nil
+                              :title   nil
+                              :playing false}))
 
 (defn log-fn [& params]
       (fn [_]
@@ -29,6 +29,7 @@
                            :title   title
                            :playing start
                            :page    page})
+            (set! (.-loop (@music :audio)) true)
             (if start
               (.play (@music :audio))))
 
@@ -56,12 +57,7 @@
                                    (when (@music :page)
                                          [:a {:href (rfe/href ::piece-one {:id (@music :page)})}
                                           [:span.icon [:i.fas.fa-link]]]
-                                         )
-
-                                   ])}))
-
-
-
+                                         )])}))
 
 
 (defn pieces-component []
@@ -102,13 +98,12 @@
                                     [:h5.subtitle.mb-2 (@s-piece :summary)]
                                     #_[:small.has-text-grey (@s-piece :mtime)]
                                     (when (@s-piece :music)
-                                              [:a {:on-click #(change-music {:path  (-> @s-piece :music :path)
-                                                                             :title (-> @s-piece :music :title)
-                                                                             :page  (@s-piece :id)
-                                                                             :start true})}
+                                          [:a {:on-click #(change-music {:path  (str "https://b.monologue.me" (-> @s-piece :music :path))
+                                                                         :title (-> @s-piece :music :title)
+                                                                         :page  (@s-piece :id)
+                                                                         :start true})}
 
-                                               [:span.icon [:i.fas.fa-rotate]]
-                                               ])
+                                           [:span.icon [:i.fas.fa-external-link-square-alt]]])
                                     [:div.content.mt-5
                                      {:dangerouslySetInnerHTML
                                       {:__html (@s-piece :content-parsed)}}]

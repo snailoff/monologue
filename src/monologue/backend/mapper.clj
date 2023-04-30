@@ -158,7 +158,8 @@
   (let [content-raw (slurp (str (git-config :workspace) "/" path))
         subject (str/replace path #".md" "")
         summary (re-find #"%%\s*summary:\s*(.*) %%" content-raw)
-        content (str/replace content-raw #"%%(.*?)%%\r?\n?" "")
+        ;content (str/replace content-raw #"%%(.*?)%%\r?\n?" "")
+        content content-raw
         piece (save-piece db-config {:subject subject
                                      :summary (second summary)
                                      :content content })]
