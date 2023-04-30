@@ -16,7 +16,7 @@
 (defn get-piece-recent-one []
       (go (let [response (<! (http/get (str backend "/api/piece-recent-one")
                                        {:with-credentials? false}))]
-               (reset! s-piece (-> response :body :piece)))))
+               (state/set-piece (-> response :body :piece)))))
 
 
 (defn get-piece [piece-id]

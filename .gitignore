@@ -17,7 +17,7 @@ package-lock.json
 node_modules/
 .shadow-cljs/
 resources/public/js/
-resources/public/files/
+resources/public/assets/2004/files/
 .firebaserc
 .firebase/
 .DS_Store

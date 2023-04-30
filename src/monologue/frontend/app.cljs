@@ -9,51 +9,111 @@
             [monologue.frontend.actions :as action]))
 
 (defonce match (reagent/atom nil))
+(defonce audio (reagent/atom nil))
+(def music (reagent/atom {:audio   nil
+                          :path    nil
+                          :title   nil
+                          :playing false}))
 
 (defn log-fn [& params]
       (fn [_]
           (apply js/console.log params)))
 
+
+(defn music-box []
+      (defn change-music [{:keys [path title page start]
+                           :or   {start false}}]
+            (if (@music :audio) (.pause (@music :audio)))
+            (reset! music {:audio   (new js/Audio path)
+                           :path    path
+                           :title   title
+                           :playing start
+                           :page    page})
+            (if start
+              (.play (@music :audio))))
+
+      (defn play-and-pause []
+            (fn [_]
+                (if (@music :playing)
+                  (do (.pause (@music :audio) (swap! music assoc :playing false)))
+                  (do (.play (@music :audio) (swap! music assoc :playing true))))))
+
+      (reagent/create-class
+        {:display-name        "music-box"
+         :component-did-mount (fn []
+                                  (change-music {:path  "/assets/worries.mp3"
+                                                 :title "kira - 걱정"}))
+         :reagent-render      (fn []
+                                  [:div
+                                   [:br] [:br]
+                                   [:span.icon [:i.fas.fa-music]]
+                                   [:span (str "\"" (@music :title) "\"")]
+                                   [:br]
+                                   [:a {:on-click (play-and-pause)}
+                                    (if (@music :playing) [:span.icon [:i.fas.fa-pause]])
+                                    (if-not (@music :playing) [:span.icon [:i.fas.fa-play]])]
+
+                                   (when (@music :page)
+                                         [:a {:href (rfe/href ::piece-one {:id (@music :page)})}
+                                          [:span.icon [:i.fas.fa-link]]]
+                                         )
+
+                                   ])}))
+
+
+
+
+
 (defn pieces-component []
       (reagent/create-class
         {:display-name        "pieces"
          :component-did-mount (fn []
-                                (action/get-pieces))
+                                  (action/get-pieces))
          :reagent-render      (fn []
-                                [:div
-                                 [:span.icon [:i.fas.fa-clock]]
-                                 [:ul
-                                  (for [piece @s-pieces]
-                                    ^{:key piece}
-                                    [:li [:a {:href (rfe/href ::piece-one {:id (piece :id)})}
-                                          (piece :subject)]
-                                     #_[:a [:span.tag.p-1.ml-2 " tag."]]])
-                                  [:li "..."]]])}))
+                                  [:div
+                                   [:span.icon [:i.fas.fa-clock]]
+                                   [:ul
+                                    (for [piece @s-pieces]
+                                         ^{:key piece}
+                                         [:li [:a {:href (rfe/href ::piece-one {:id (piece :id)})}
+                                               (piece :subject)]
+                                          #_[:a [:span.tag.p-1.ml-2 " tag."]]])
+                                    [:li "..."]]])}))
 
 
 (defn piece-one-component []
-  (reagent/create-class
-    {:display-name         "piece one"
-     :component-did-update (fn [this [_ prev-argv]]
-                             (let [[_ new-argv] (reagent/argv this)
-                                   nid (-> new-argv :parameters :path :id)
-                                   prev-id (-> prev-argv :parameters :path :id)]
-                               (if (not= nid prev-id)
-                                 (action/get-piece nid))))
+      (reagent/create-class
+        {:display-name         "piece one"
+         :component-did-update (fn [this [_ prev-argv]]
+                                   (let [[_ new-argv] (reagent/argv this)
+                                         nid (-> new-argv :parameters :path :id)
+                                         prev-id (-> prev-argv :parameters :path :id)]
+                                        (if (not= nid prev-id)
+                                          (action/get-piece nid))))
 
-     :component-did-mount  (fn [this]
-                             (let [[_ new-argv] (reagent/argv this)
-                                   nid (-> new-argv :parameters :path :id)]
-                               (action/get-piece nid)))
+         :component-did-mount  (fn [this]
+                                   (let [[_ new-argv] (reagent/argv this)
+                                         nid (-> new-argv :parameters :path :id)]
+                                        (action/get-piece nid)))
 
-     :reagent-render       (fn []
-                             [:div
-                              [:strong (@s-piece :subject)]
-                              [:h5.subtitle.mb-2 (@s-piece :summary)]
-                              #_[:small.has-text-grey (@s-piece :mtime)]
-                              [:div.content.mt-5
-                               {:dangerouslySetInnerHTML
-                                {:__html (@s-piece :content-parsed)}}]])}))
+         :reagent-render       (fn []
+                                   [:div
+                                    [:strong (@s-piece :subject)]
+                                    [:h5.subtitle.mb-2 (@s-piece :summary)]
+                                    #_[:small.has-text-grey (@s-piece :mtime)]
+                                    (when (@s-piece :music)
+                                              [:a {:on-click #(change-music {:path  (-> @s-piece :music :path)
+                                                                             :title (-> @s-piece :music :title)
+                                                                             :page  (@s-piece :id)
+                                                                             :start true})}
+
+                                               [:span.icon [:i.fas.fa-rotate]]
+                                               ])
+                                    [:div.content.mt-5
+                                     {:dangerouslySetInnerHTML
+                                      {:__html (@s-piece :content-parsed)}}]
+
+                                    ])}))
 
 (defn main-component []
       (reagent/create-class
@@ -63,9 +123,12 @@
 
          :reagent-render      (fn []
                                   [:div
-                                   [:h3.title (@s-piece :subject)]
-                                   [:h5.subtitle (@s-piece :summary)]
-                                   [:div.content (@s-piece :content)]])}))
+                                   [:strong (@s-piece :subject)]
+                                   [:h5.subtitle.mb-2 (@s-piece :summary)]
+                                   #_[:small.has-text-grey (@s-piece :mtime)]
+                                   [:div.content.mt-5
+                                    {:dangerouslySetInnerHTML
+                                     {:__html (@s-piece :content-parsed)}}]])}))
 
 
 (def routes
@@ -88,7 +151,8 @@
             [:img {:src "assets/roomel_coffee.jpg"}]]]]
          [:div.column.has-text-right
           [:p.title "monologue"]
-          [:p "snail"]]]]
+          [:p "snail"]
+          [music-box]]]]
 
 
        [:div.columns
