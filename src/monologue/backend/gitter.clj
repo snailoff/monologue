@@ -2,6 +2,7 @@
   (:require [clj-jgit.internal :refer [get-head-commit resolve-object]]
             [clj-jgit.porcelain :as jgit]
             [clj-jgit.querying :refer [changed-files-between-commits]]
+            [clojure.string :as str]
             [immutant.scheduling :as cron]
             [monologue.backend.mapper :as data]
             [monologue.backend.constant :refer :all]
@@ -14,7 +15,7 @@
   (jgit/with-credentials git-config
                          (let [repo (jgit/load-repo (git-config :workspace))
                                latest-commit (get-head-commit repo)
-                               saved-commit (data/load-meta-content META-GIT-COMMIT-ID)
+                               saved-commit (data/select-meta-content META-GIT-COMMIT-ID)
                                since-commit (if (nil? saved-commit)
                                               ((last (jgit/git-log repo :all? true)) :id)
                                               (resolve-object saved-commit repo))]
@@ -42,30 +43,32 @@
       (git-clone))))
 
 (defn parse-target? [path]
-  (and (every? nil? [(re-find #"^\." path)
-                     (re-find #"^/?files/" path)])
-       (every? some? [(re-find #"\.md$" path)])))
+  (let [file (clojure.string/replace path #".*/" "")]
+    (and (every? nil? [(re-find #"^\." path)
+                       (re-find #"^/?files/" path)
+                       (re-find #"^-" file)])
+         (every? some? [(re-find #"\.md$" path)]))))
 
+
+(parse-target? "2023/hehe.md")
+(parse-target? "2023/-hehe.md")
+(clojure.string/replace "2023/hehe.md" #".*/" "")
+
+
+(defn slurp-file [path]
+  {:path    path
+   :content (slurp (str (git-config :workspace) "/" path))})
 
 (defn git-parse []
   (doseq [[path action] (git-changes)]
+    (println "path : " path)
     (if (parse-target? path)
       (cond
         (or (= action :add)
-            (= action :edit)) (data/knot-save path action)
-        (= action :delete) (data/knot-remove path action)
+            (= action :edit)) (data/save-piece (slurp-file path))
+        (= action :delete) (data/remove-piece path)
         :else (throw (Exception. (str "unknown action - " action))))
       (b/info "** ignored - " path))))
-(comment
-  (doseq [[path action] (git-changes)]
-    (println "** change : " path )
-    )
-
-  (git-changes)
-  (git-parse)
-  )
-
-
 
 (defn reload-md []
   (git-pull)
@@ -77,22 +80,10 @@
   (cron/schedule #(reload-md) (cron/cron "0 */1 * ? * *")))
 
 (comment
+  (git-clone)
   (git-parse)
   (git-changes)
   (git-pull)
-
-  (reload-md)
-
-
   (memo-set :git-commit-id-save? true)
   (memo-set :git-commit-id-save? false)
-
-  #_(let [subject "nana"
-          _ (save-piece db-config subject "su" "co")
-          p (load-piece subject)]
-      (save-link-piece db-config (p :id) 0)
-      (save-link-piece db-config 99 (p :id))
-      (remove-piece subject))
-
-  #_(remove-piece "lala")
-  #_(remove-link-piece-children db-config 25))
+  )

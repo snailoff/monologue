@@ -5,11 +5,11 @@
             [honey.sql.helpers :as sqh]
             [taoensso.timbre :as b]
             [nano-id.core :refer [custom]]
-            [monologue.backend.constant :refer [db-config git-config]]))
+            [monologue.backend.constant :refer [db-config]]))
 
 (def nano-pid (custom "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" 15))
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; meta
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; meta
 
 (defn save-meta [meta-name content]
   (jdbc/execute! db-config (-> (sqh/insert-into :knot_meta)
@@ -21,37 +21,42 @@
                                sql/format))
   (b/spy :info meta-name content))
 
-(defn load-meta [meta-name]
+(defn select-meta-one [meta-name]
   (let [rs (jdbc/query db-config (sql/format {:select [:*]
                                               :from   :knot_meta
                                               :where  [:= :meta meta-name]}))]
     (if (empty? rs) nil (first rs))))
 
-(defn load-meta-content [meta-name]
-  (if-let [meta-data (load-meta meta-name)]
+(defn select-meta-content [meta-name]
+  (if-let [meta-data (select-meta-one meta-name)]
     (meta-data :content) nil))
 
+(defn delete-meta-content [meta-name]
+  (if-let [_ (select-meta-one meta-name)]
+    (jdbc/execute! db-config (sql/format {:delete-from :knot_meta
+                                          :where       [:= :meta meta-name]}))
+    (b/spy :warn (str "no meta - " meta-name))))
 
 
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; piece
-(defn load-piece-by-id [conn id]
+(defn select-piece-by-id [conn id]
   (let [rs (jdbc/query conn (sql/format {:select [:*]
                                          :from   :knot_pieces
                                          :where  [:= :id id]}))]
     (if (empty? rs) nil (first rs))))
 
-(defn load-piece-by-subject [conn subject]
+(defn select-piece-by-subject [conn subject]
   (let [rs (jdbc/query conn (sql/format {:select [:*]
                                          :from   :knot_pieces
                                          :where  [:= :subject subject]}))]
     (if (empty? rs) nil (first rs))))
 
 
-(defn save-piece [conn data]
+(defn upsert-piece [conn data]
   (jdbc/execute! conn (-> (sqh/insert-into :knot_pieces)
-                          (sqh/values [{:id (nano-pid)
+                          (sqh/values [{:id      (data :id)
                                         :subject (data :subject)
                                         :summary (data :summary)
                                         :content (data :content)
@@ -59,40 +64,22 @@
                                         :mtime   [:now]}])
                           (sqh/on-conflict :subject)
                           (sqh/do-update-set :summary :content :mtime)
-                          sql/format))
-  (load-piece-by-subject conn (data :subject)))
+                          sql/format)))
+
+(defn delete-piece [conn id]
+  (jdbc/execute! conn (sql/format {:delete-from :knot_pieces
+                                   :where       [:= :id id]})))
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; tag
 
-(defn load-tag [conn name]
-  (let [rs (jdbc/query conn (sql/format {:select [:*]
-                                         :from   :knot_tags
-                                         :where  [:= :name name]}))]
-    (if (empty? rs) nil (first rs))))
 
-#_(defn save-tag [conn name content]
-    (jdbc/execute! conn (-> (sqh/insert-into :knot_tags)
-                            (sqh/values [{:name    name
-                                          :content content
-                                          :ctime   [:now]
-                                          :mtime   [:now]}])
-                            (sqh/on-conflict :name)
-                            (sqh/do-update-set :content :mtime)
-                            sql/format)))
 
-(defn save-tag-no-content [conn name]
-  (jdbc/execute! conn (-> (sqh/insert-into :knot_tags)
-                          (sqh/values [{:name  name
-                                        :ctime [:now]
-                                        :mtime [:now]}])
-                          (sqh/on-conflict :name)
-                          (sqh/do-nothing)
-                          (sqh/returning [:id])
-                          sql/format))
-  (load-tag conn name))
 
-(defn save-link-tag-piece [conn tag-id piece-id]
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; link (knot to piece)
+
+;TODO tag => knot table. column
+
+(defn upsert-link-knot-piece [conn tag-id piece-id]
   (jdbc/execute! conn (-> (sqh/insert-into :link_tag_piece)
                           (sqh/values [{:tag_id   tag-id
                                         :piece-id piece-id}])
@@ -100,15 +87,36 @@
                           sqh/do-nothing
                           sql/format)))
 
-(defn remove-link-tag-piece [conn piece-id]
+(defn select-link-knot-piece-by-knot-id [conn knot-id]
+  (jdbc/query conn (sql/format {:select :*
+                                :from   :link_tag_piece
+                                :where  [:= :tag_id knot-id]})))
+(defn select-link-knot-piece-by-piece-id [conn piece-id]
+  (jdbc/query conn (sql/format {:select :*
+                                :from   :link_tag_piece
+                                :where  [:= :piece_id piece-id]})))
+
+(defn delete-link-knot-piece-by-knot-id [conn knot-id]
+  (jdbc/execute! conn (sql/format {:delete-from :link_tag_piece
+                                   :where       [:= :tag_id knot-id]})))
+
+(defn delete-link-knot-piece-by-piece-id [conn piece-id]
   (jdbc/execute! conn (sql/format {:delete-from :link_tag_piece
                                    :where       [:= :piece_id piece-id]})))
 
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; link
 
-(defn save-link-piece [conn from-id to-id]
+
+
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; link (piece to piece)
+
+(defn insert-link-piece-piece [conn from-id to-id]
   (jdbc/execute! conn (-> (sqh/insert-into :link_pieces)
                           (sqh/values [{:from_piece_id from-id
                                         :to_piece_id   to-id}])
@@ -116,55 +124,95 @@
                           sqh/do-nothing
                           sql/format)))
 
-(defn remove-link-piece-parents [conn id]
+(defn select-link-piece-piece-by-from-id [conn from-id]
+  (jdbc/query conn (sql/format {:select :*
+                                :from   :link_pieces
+                                :where  [:= :from_piece_id from-id]})))
+
+(defn select-link-piece-piece-by-to-id [conn to-id]
+  (jdbc/query conn (sql/format {:select :*
+                                :from   :link_pieces
+                                :where  [:= :to_piece_id to-id]})))
+
+(defn delete-link-piece-piece [conn from-id to-id]
   (jdbc/execute! conn (sql/format {:delete-from :link_pieces
-                                   :where       [:= :to_piece_id id]})))
+                                   :where       [:and [:= :from_piece_id from-id]
+                                                 [:= :to_piece_id to-id]]})))
 
-(defn remove-link-piece-children [conn id]
+(defn delete-link-piece-piece-by-from-id [conn from-id]
   (jdbc/execute! conn (sql/format {:delete-from :link_pieces
-                                   :where       [:= :from_piece_id id]})))
+                                   :where       [:= :from_piece_id from-id]})))
 
-(defn remove-piece [subject]
+(defn delete-link-piece-piece-by-to-id [conn to-id]
+  (jdbc/execute! conn (sql/format {:delete-from :link_pieces
+                                   :where       [:= :to_piece_id to-id]})))
+
+
+
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; action
+
+(defn load-or-save-new-piece [tx piece-subject]
+  (if-let [piece (select-piece-by-subject tx piece-subject)]
+    (piece :id)
+    (let [piece-id (nano-pid)]
+      (upsert-piece tx {:id      piece-id
+                        :subject piece-subject})
+      piece-id)))
+
+(defn parse-tag [piece-id piece-content]
   (jdbc/with-db-transaction [tx db-config]
-                            (if-let [piece (load-piece-by-subject tx subject)]
-                              (do
-                                (jdbc/execute! tx (sql/format {:delete-from :knot_pieces
-                                                               :where       [:= :id (piece :id)]}))
-                                (remove-link-tag-piece tx (piece :id))
-                                (remove-link-piece-parents tx (piece :id))
-                                (remove-link-piece-children tx (piece :id)))
-                              ())))
+                            (delete-link-knot-piece-by-piece-id tx piece-id)
+                            (doseq [knot (re-seq #"(?<=^|[^\w])#([^\s#]+)" piece-content)]
+                              (let [knot-subject (second knot)
+                                    knot-id (load-or-save-new-piece tx knot-subject)] ; TODO 없으면 생성
+                                (upsert-link-knot-piece tx knot-id piece-id)))))
 
-(defn parse-tag [piece]
+
+
+
+
+
+
+
+
+
+(defn parse-link [piece-from-id piece-content]
   (jdbc/with-db-transaction [tx db-config]
-                            (remove-link-tag-piece tx (piece :id))
-                            (doseq [tag (re-seq #"(?<=^|[^\w])#([^\s]+)" (piece :content))]
-                              (let [tag-name (second tag)
-                                    tag (save-tag-no-content tx tag-name)]
-                                (save-link-tag-piece tx (tag :id) (piece :id))))))
-
-(defn parse-link [piece]
-  (jdbc/with-db-transaction [tx db-config]
-                            (remove-link-piece-children tx (piece :id))
-                            (doseq [link (re-seq #"\[\[(.*?)\]\]" (piece :content))]
-                              (if-let [target-piece (load-piece-by-subject tx (second link))]
-                                (save-link-piece tx (piece :id) (target-piece :id))
-                                ()))))
+                            (delete-link-knot-piece-by-knot-id tx piece-from-id)
+                            (doseq [link (re-seq #"\[\[(.*?)\]\]" piece-content)]
+                              (let [piece-subject (second link)
+                                    piece-to-id (load-or-save-new-piece tx piece-subject)]
+                                (insert-link-piece-piece tx piece-from-id piece-to-id)))))
 
 
-(defn knot-save [path action]
-  (println "** knot-save : " path action)
-  (b/info (slurp (str (git-config :workspace) "/" path)))
-  (let [content-raw (slurp (str (git-config :workspace) "/" path))
+
+
+
+
+
+
+(defn save-piece [{:keys [path content]}]
+  (println "** knot-save : " path)
+  (let [piece-id (nano-pid)
         subject (str/replace path #".md" "")
-        summary (re-find #"%%\s*summary:\s*(.*) %%" content-raw)
+        summary (re-find #"%%\s*summary:\s*(.*) %%" content)
         ;content (str/replace content-raw #"%%(.*?)%%\r?\n?" "")
-        content content-raw
-        piece (save-piece db-config {:subject subject
-                                     :summary (second summary)
-                                     :content content })]
-    (parse-tag piece)
-    (parse-link piece)))
+        ]
+    (upsert-piece db-config {:id      piece-id
+                             :subject subject
+                             :summary (second summary)
+                             :content content})
+    (parse-tag piece-id content)
+    (parse-link piece-id content)))
+
+
+
+
 
 (comment
   (re-matches #"^.*[0-9]{12}.*$" "2024/202404142323.md")
@@ -177,9 +225,21 @@
   )
 
 
+(defn remove-piece [path]
+  (println "** knot-remove : " path)
+  (let [subject (str/replace path #".md" "")]
+    (jdbc/with-db-transaction [tx db-config]
+                              (if-let [piece (select-piece-by-subject tx subject)]
+                                (do
+                                  (delete-piece tx (piece :id))
+                                  (delete-link-knot-piece-by-piece-id tx (piece :id))
+                                  (delete-link-piece-piece-by-from-id tx (piece :id))
+                                  (delete-link-piece-piece-by-to-id tx (piece :id)))))))
 
-(defn knot-remove [path _]
-  (remove-piece path))
+
+
+
+
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; page
@@ -199,7 +259,7 @@
     (if (empty? rs) nil rs)))
 
 (defn pieces-one [id]
-  (load-piece-by-id db-config id))
+  (select-piece-by-id db-config id))
 
 #_(defn tags-recent [limit]
     (let [rs (jdbc/query db-config (sql/format {:select   [:*]

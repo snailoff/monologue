@@ -13,10 +13,13 @@
                  [org.slf4j/slf4j-api "1.7.14"]
                  [com.taoensso/timbre "6.1.0"]]
 
-  :plugins [[lein-environ "1.2.0"]]
-  :profiles {:uberjar {:aot :all}}
+  :plugins [[lein-environ "1.2.0"]
+            [lein-pprint "1.3.2"]]
+  :profiles {:uberjar {:aot :all}
+             :dev [:test]}
 
   :source-paths ["src"]
+  :test-paths ["test"]
   :clean-targets ^{:protect false} ["target"]
   :main monologue.backend.core)
 

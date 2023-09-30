@@ -1,17 +1,18 @@
-(ns monologue.backend.constant)
+(ns monologue.backend.constant
+  (:require [environ.core :refer [env]]))
 
 (def db-config {:dbtype      "postgresql"
-                :host        (System/getenv "MONOLOGUE_DB_HOST")
-                :port        (System/getenv "MONOLOGUE_DB_PORT")
-                :dbname      (System/getenv "MONOLOGUE_DB_NAME")
-                :user        (System/getenv "MONOLOGUE_DB_USER")
-                :password    (System/getenv "MONOLOGUE_DB_PASSWORD")
+                :host        (env :monologue-db-host)
+                :port        (env :monologue-db-port)
+                :dbname      (env :monologue-db-name)
+                :user        (env :monologue-db-user)
+                :password    (env :monologue-db-password)
                 :auto-commit true})
 
-(def git-config {:login     (System/getenv "MONOLOGUE_GIT_USER")
-                 :pw        (System/getenv "MONOLOGUE_GIT_TOKEN")
-                 :repo      (System/getenv "MONOLOGUE_GIT_REPOSITORY")
-                 :workspace (System/getenv "MONOLOGUE_GIT_WORKSPACE")})
+(def git-config {:login     (env :monologue-git-user)
+                 :pw        (env :monologue-git-token)
+                 :repo      (env :monologue-git-repository)
+                 :workspace (env :monologue-git-workspace)})
 
 (def memo (atom {:git-commit-id-save? true}))
 (defn memo-set [key val] (swap! memo assoc-in [key] val))
