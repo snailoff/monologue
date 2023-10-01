@@ -22,3 +22,4 @@ resources/public/assets/2004/files/
 .firebase/
 .DS_Store
 .clj-kondo/
+.lein-env
