@@ -81,16 +81,16 @@
 
 (defn upsert-link-knot-piece [conn tag-id piece-id]
   (jdbc/execute! conn (-> (sqh/insert-into :link_tag_piece)
-                          (sqh/values [{:tag_id   tag-id
+                          (sqh/values [{:tag_name   tag-id
                                         :piece-id piece-id}])
-                          (sqh/on-conflict :tag_id :piece-id)
+                          (sqh/on-conflict :tag_name :piece-id)
                           sqh/do-nothing
                           sql/format)))
 
 (defn select-link-knot-piece-by-knot-id [conn knot-id]
   (jdbc/query conn (sql/format {:select :*
                                 :from   :link_tag_piece
-                                :where  [:= :tag_id knot-id]})))
+                                :where  [:= :tag_name knot-id]})))
 (defn select-link-knot-piece-by-piece-id [conn piece-id]
   (jdbc/query conn (sql/format {:select :*
                                 :from   :link_tag_piece
@@ -98,7 +98,7 @@
 
 (defn delete-link-knot-piece-by-knot-id [conn knot-id]
   (jdbc/execute! conn (sql/format {:delete-from :link_tag_piece
-                                   :where       [:= :tag_id knot-id]})))
+                                   :where       [:= :tag_name knot-id]})))
 
 (defn delete-link-knot-piece-by-piece-id [conn piece-id]
   (jdbc/execute! conn (sql/format {:delete-from :link_tag_piece
@@ -251,21 +251,40 @@
                                               :limit    1}))]
     (if (empty? rs) nil (first rs))))
 
-(defn pieces-recent [limit]
-  (let [rs (jdbc/query db-config (sql/format {:select   [:*]
+(defn pieces-recent-many
+  ([limit]
+   (let [rs (jdbc/query db-config (sql/format {:select   [:*]
+                                               :from     :knot_pieces
+                                               :order-by [[:mtime :desc]]
+                                               :limit    limit}))]
+     (if (empty? rs) nil rs)))
+  ([limit year]
+   (let [rs (jdbc/query db-config (sql/format {:select   [:*]
+                                               :from     :knot_pieces
+                                               :where    [:= :%substring.rdate.0.5 year]
+                                               :order-by [[:mtime :desc]]
+                                               :limit    limit}))]
+     (if (empty? rs) nil rs))))
+
+
+(defn pieces-years []
+  (let [rs (jdbc/query db-config (sql/format {:select   [:%substring.rdate.0.5 :%count.*]
                                               :from     :knot_pieces
-                                              :order-by [[:mtime :desc]]
-                                              :limit    limit}))]
+                                              :where    [:!= :rdate nil]
+                                              :group-by [:%substring.rdate.0.5]
+                                              :order-by [:%substring.rdate.0.5]
+                                              }))]
     (if (empty? rs) nil rs)))
+
 
 (defn pieces-one [id]
   (select-piece-by-id db-config id))
 
-#_(defn tags-recent [limit]
-    (let [rs (jdbc/query db-config (sql/format {:select   [:*]
-                                                :from     :knot_tags
-                                                :order-by [[:mtime :desc]]
-                                                :limit    limit}))]
-      (if (empty? rs) nil rs)))
+(defn clear-all []
+  (jdbc/with-db-transaction [tx db-config]
+                            (jdbc/execute! tx (sql/format {:truncate :knot_meta}))
+                            (jdbc/execute! tx (sql/format {:truncate :knot_pieces}))
+                            (jdbc/execute! tx (sql/format {:truncate :link_pieces}))
+                            (jdbc/execute! tx (sql/format {:truncate :link_tag_piece}))))
 
 

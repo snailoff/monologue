@@ -58,7 +58,7 @@
     (is (= piece-id
            (:piece_id (first (select-link-knot-piece-by-knot-id db-config knot-id)))))
     (is (= knot-id
-           (:tag_id (first (select-link-knot-piece-by-piece-id db-config piece-id)))))
+           (:tag_name (first (select-link-knot-piece-by-piece-id db-config piece-id)))))
     (is (= 1 (first (delete-link-knot-piece-by-piece-id db-config piece-id))))))
 
 
@@ -133,7 +133,7 @@
     (parse-tag piece-id (str "lala #" knot-name " hehe"))
 
     (let [link-knot-piece (first (select-link-knot-piece-by-piece-id db-config piece-id))
-          new-knot (select-piece-by-id db-config (link-knot-piece :tag_id))]
+          new-knot (select-piece-by-id db-config (link-knot-piece :tag_name))]
       ; new knot check
       (is (= knot-name
              (new-knot :subject))))
@@ -141,7 +141,7 @@
     ; knot 이 있을 때
     (parse-tag piece-id (str "lala #" knot-name " hehe"))
     (let [link-knot-piece (first (select-link-knot-piece-by-piece-id db-config piece-id))
-          new-knot (select-piece-by-id db-config (link-knot-piece :tag_id))]
+          new-knot (select-piece-by-id db-config (link-knot-piece :tag_name))]
       ; new knot check
       (is (= knot-name
              (new-knot :subject)))
@@ -177,10 +177,10 @@
 
 (deftest save-piece-test
   (let [subject "abcdefghijklmn"
-        md-name (str subject ".md")
+        page-name (str subject ".md")
         content "nana"]
     (is (= nil (select-piece-by-subject db-config subject)))
-    (save-piece {:path    md-name
+    (save-piece {:path    page-name
                  :content content})
 
     (let [piece (select-piece-by-subject db-config subject)]
@@ -192,13 +192,13 @@
 
 (deftest remove-piece-test
   (let [subject "abcdefghijklmn"
-        md-name (str subject ".md")
+        page-name (str subject ".md")
         content "nana"]
     (is (= nil (select-piece-by-subject db-config subject)))
-    (save-piece {:path    md-name
+    (save-piece {:path    page-name
                  :content content})
 
     (let [piece (select-piece-by-subject db-config subject)]
       (is (= subject (piece :subject)))
       (is (= content (piece :content))))
-    (remove-piece md-name)))
+    (remove-piece page-name)))

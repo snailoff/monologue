@@ -19,17 +19,6 @@ CREATE TABLE "public"."knot_pieces" (
 CREATE UNIQUE INDEX piece_u_subject
 ON knot_pieces(subject);
 
-CREATE TABLE "public"."knot_tags" (
-    "id" serial,
-    "name" varchar NOT NULL,
-    "content" text,
-    "ctime" timestamp NOT NULL DEFAULT now(),
-    "mtime" timestamp NOT NULL DEFAULT now(),
-    PRIMARY KEY ("id")
-);
-
-CREATE UNIQUE INDEX tag_u_name
-ON knot_tags(name);
 
 CREATE TABLE "public"."link_pieces" (
     "from_piece_id" bpchar(15) NOT NULL,

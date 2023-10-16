@@ -50,11 +50,6 @@
          (every? some? [(re-find #"\.md$" path)]))))
 
 
-(parse-target? "2023/hehe.md")
-(parse-target? "2023/-hehe.md")
-(clojure.string/replace "2023/hehe.md" #".*/" "")
-
-
 (defn slurp-file [path]
   {:path    path
    :content (slurp (str (git-config :workspace) "/" path))})

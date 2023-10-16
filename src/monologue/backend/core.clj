@@ -8,7 +8,7 @@
 (timbre/set-config!
   {:min-level [["taoensso.*" :error]
                ["org.eclipse.jgit.*" :info]
-               ["*" :debug]]})
+               ]})
 
 (defn -main
   [& _]

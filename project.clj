@@ -11,7 +11,8 @@
                  [ring-cors "0.1.13"]
                  [nano-id "1.0.0"]
                  [org.slf4j/slf4j-api "1.7.14"]
-                 [com.taoensso/timbre "6.1.0"]]
+                 [com.taoensso/timbre "6.1.0"]
+                 [hiccup "2.0.0-RC2"]]
 
   :plugins [[lein-environ "1.2.0"]
             [lein-pprint "1.3.2"]]

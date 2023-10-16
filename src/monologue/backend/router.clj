@@ -1,5 +1,5 @@
 (ns monologue.backend.router
-  (:require [monologue.backend.mapper :as mapper]
+  (:require [monologue.backend.service :as mser]
             [muuntaja.core :as muun]
             [reitit.ring :as ring]
             [reitit.ring.coercion :as rrc]
@@ -7,53 +7,93 @@
             [reitit.ring.middleware.parameters :as rrm-parameter]
             [reitit.coercion.spec]
             [ring.adapter.jetty :as jetty]
-            [ring.middleware.cors :refer [wrap-cors]]
             [taoensso.timbre :as b]))
 
 
 (def app-route
   (ring/ring-handler
     (ring/router
-      [["/api"
-        ["/piece-recent-list" {:get {:parameters {}
-                                     :responses  {200 {}}
-                                     :handler    (fn [{:keys []}]
-                                                   {:status 200
-                                                    :body   {:pieces (mapper/pieces-recent 10)}})}}]
-        ["/piece-recent-one" {:get {:parameters {}
-                                    :responses  {200 {}}
-                                    :handler    (fn [{:keys []}]
-                                                  {:status 200
-                                                   :body   {:piece (mapper/pieces-recent-one)}})}}]
-        ["/piece/:piece-id" {:get {:parameters {:path {:piece-id string?}}
-                                   :responses  {200 {:piece {}}}
-                                   :handler    (fn [{:keys [parameters]}]
-                                                 {:status 200
-                                                  :body   {:piece (mapper/pieces-one (-> parameters :path :piece-id))}})}}]]
-       ["/blog"
-        ["/tistory/auth-code-callback" {:get {:parameters {:query {:code  string?
-                                                                   :state string?}}
-                                              :responses  {200 {}}
-                                              :handler    (fn [{{{:keys [code state]} :query} :parameters}]
-                                                            {:status 200
-                                                             :body   {:authorization-code code
-                                                                      :state              state}})}}]]]
+      [["/" {:get {:parameters {}
+                   :responses  {200 {}}
+                   :handler    (fn [_]
+                                 {:status  302
+                                  :headers {"Location" "/page/@main"}})}}]
+       ["/tags" {:get {:parameters {}
+                       :responses  {200 {}}
+                       :handler    (fn [_]
+                                     {:status  200
+                                      :headers {"Content-Type" "text/html"}
+                                      :body    "tags"})}}]
+       ["/tag/:page-name" {:get {:parameters {}
+                                 :responses  {200 {}}
+                                 :handler    (fn [_]
+                                               {:status  200
+                                                :headers {"Content-Type" "text/html"}
+                                                :body    "tag - page"})}}]
+       ["/pages" {:get {:parameters {}
+                        :responses  {200 {}}
+                        :handler    (fn [_]
+                                      {:status  200
+                                       :headers {"Content-Type" "text/html"}
+                                       :body    (str (mser/load-pages))})}}]
+       ["/pages/:year" {:get {:parameters {:path {:year string?}}
+                              :responses  {200 {}}
+                              :handler    (fn [{{{:keys [year]} :path} :parameters}]
+                                            {:status  200
+                                             :headers {"Content-Type" "text/html"}
+                                             :body    (str (mser/load-pages-year year))})}}]
+       ["/page/:page-name" {:get {:parameters {:path {:page-name string?}}
+                                  :responses  {200 {}}
+                                  :handler    (fn [{{{:keys [page-name]} :path} :parameters}]
+                                                {:status  200
+                                                 :headers {"Content-Type" "text/html"}
+                                                 :body    (mser/load-page-one page-name)})}}]
+       ["/comments" {:get {:parameters {}
+                           :responses  {200 {}}
+                           :handler    (fn [_]
+                                         {:status  200
+                                          :headers {"Content-Type" "text/html"}
+                                          :body    "comments"})}}]
+       ["/comments/:page-name" {:get {:parameters {}
+                                      :responses  {200 {}}
+                                      :handler    (fn [_]
+                                                    {:status  200
+                                                     :headers {"Content-Type" "text/html"}
+                                                     :body    "comments - page"})}}]
+       ["api"
+        [["/comment/:page-name/create" {:post {:parameters {}
+                                        :responses  {200 {}}
+                                        :handler    (fn [_]
+                                                      {:status  200
+                                                       :headers {"Content-Type" "text/html"}
+                                                       :body    "comment api - create"})}}]
+         ["/comment/:page-name/remote" {:delete {:parameters {}
+                                          :responses  {200 {}}
+                                          :handler    (fn [_]
+                                                        {:status  200
+                                                         :headers {"Content-Type" "text/html"}
+                                                         :body "comment api - delete"
+                                                         })}}]]]]
+
       {:data {:coercion   reitit.coercion.spec/coercion
               :muuntaja   muun/instance
               :middleware [rrm-muuntaja/format-middleware
                            rrm-parameter/parameters-middleware
                            rrc/coerce-exceptions-middleware
                            rrc/coerce-request-middleware
-                           rrc/coerce-response-middleware]}})
+                           rrc/coerce-response-middleware
+                           ]}})
     (ring/routes
-      (ring/create-resource-handler {:path "/"})
+      (ring/create-resource-handler {:root "public" :path "/"})
       (ring/create-default-handler))))
 
-(def app
-  (wrap-cors app-route
-             :access-control-allow-origin [#".*"]
-             :access-control-allow-methods [:get :options]))
-
 (defn start []
-  (jetty/run-jetty app {:port 1234, :join? false})
+  (jetty/run-jetty app-route {:port 1234, :join? false})
   (b/debug "start!"))
+
+(start)
+(comment
+  (start)
+  (app-route {:request-method :get, :uri "/"})
+  (app-route {:request-method :get, :uri "/index"}))
+
