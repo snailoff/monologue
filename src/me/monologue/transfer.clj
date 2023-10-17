@@ -7,6 +7,7 @@
             [immutant.scheduling :as cron]
             [me.monologue.mapper :as data]
             [me.monologue.constant :refer :all]
+            [me.monologue.parser :as mpar]
             [taoensso.timbre :as b]))
 
 
@@ -55,6 +56,17 @@
   {:path    path
    :content (slurp (str (knot-config :workspace) "/" path))})
 
+(defn resource-task [action path]
+  (cond
+    (or (= action :add)
+        (= action :edit)) (fs/copy+ (str (knot-config :workspace) "/" path)
+                                    (str (knot-config :resource) "/" path))
+    (= action :delete) (fs/delete (str (knot-config :resource) "/" path))
+    :else (throw (Exception. (str "unknown action - " action))))
+
+  (if (= path (knot-config :template-file))
+    (mpar/load-template)))
+
 (defn git-parse []
   (doseq [[path action] (git-changes)]
     (println "parse path : " path)
@@ -65,12 +77,7 @@
         (= action :delete) (data/remove-piece path)
         :else (throw (Exception. (str "unknown action - " action))))
 
-      (cond
-        (or (= action :add)
-            (= action :edit)) (fs/copy+ (str (knot-config :workspace) "/" path)
-                                        (str (knot-config :resource) "/" path))
-        (= action :delete) (fs/delete (str (knot-config :resource) "/" path))
-        :else (throw (Exception. (str "unknown action - " action))))
+      (resource-task action path)
       )))
 
 (defn reload-md []
@@ -83,15 +90,6 @@
   (cron/schedule #(reload-md) (cron/cron "0 */1 * ? * *")))
 
 (comment
-
-  (fs/copy+ (str (.getPath (fs/absolute "."))
-                 "/resources/public/knot.html")
-            "/tmp/knot-resource/knot.html")
-
-  (parse-target? "knot.html")
-  (fs/file (knot-config :resource))
-
-
   (git-clone)
   (git-parse)
   (git-changes)

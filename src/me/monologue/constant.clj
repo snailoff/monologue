@@ -16,9 +16,10 @@
 (def knot-config {:workspace (env :monologue-knot-workspace)
                   :resource  (env :monologue-knot-resource)
                   :main-page "main"
-                  :default-page "tags"})
-
-(def memo (atom {:git-commit-id-save? true}))
+                  :default-page "tags"
+                  :404-page "404"
+                  :template-file "knot.html"})
+(def memo (atom {:git-commit-id-save? false}))
 (defn memo-set [key val] (swap! memo assoc-in [key] val))
 
 (def META-GIT-COMMIT-ID "GIT-COMMIT-ID")

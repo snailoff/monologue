@@ -1,6 +1,7 @@
 (ns me.monologue.core
-  (:require [me.monologue.transfer :as gitter]
-            [me.monologue.router :as router]
+  (:require [me.monologue.transfer :as mtra]
+            [me.monologue.router :as mrou]
+            [me.monologue.parser :as mpar]
             [taoensso.timbre :as timbre])
 
   (:gen-class))
@@ -13,10 +14,11 @@
 
 (defn -main
   [& _]
-  (gitter/reload-schedule)
-  (router/start))
+  (mpar/load-template)
+  (mtra/reload-schedule)
+  (mrou/start))
 
 
 (comment
-  (router/start))
+  (mrou/start))
 
