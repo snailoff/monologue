@@ -1,4 +1,4 @@
-(ns me.monologue.constant
+(ns monologue.knot.constant
   (:require [environ.core :refer [env]]))
 
 (def db-config {:dbtype      "postgresql"
@@ -15,11 +15,11 @@
 
 (def knot-config {:workspace (env :monologue-knot-workspace)
                   :resource  (env :monologue-knot-resource)
-                  :main-page "main"
-                  :default-page "tags"
-                  :404-page "404"
+                  :start-page "@index"
+                  :default-page "@tags"
+                  :404-page "@404"
                   :template-file "knot.html"})
-(def memo (atom {:git-commit-id-save? false}))
+(def memo (atom {:git-commit-id-save? true}))
 (defn memo-set [key val] (swap! memo assoc-in [key] val))
 
 (def META-GIT-COMMIT-ID "GIT-COMMIT-ID")

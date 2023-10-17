@@ -8,6 +8,7 @@
                  [org.postgresql/postgresql "42.5.4"]
                  [metosin/reitit "0.5.18"]
                  [ring/ring-jetty-adapter "1.9.6"]
+                 [clj-time "0.15.2"]
                  [ring-cors "0.1.13"]
                  [nano-id "1.0.0"]
                  [org.slf4j/slf4j-api "1.7.14"]
@@ -23,5 +24,5 @@
   :test-paths ["test"]
   :resource-paths ["/tmp/knot-resource"]
   :clean-targets ^{:protect false} ["target"]
-  :main me.monologue.core)
+  :main monologue.knot.core)
 

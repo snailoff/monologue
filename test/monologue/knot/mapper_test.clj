@@ -1,6 +1,6 @@
-(ns me.monologue.mapper-test
-  (:require [me.monologue.mapper :refer :all]
-            [me.monologue.constant :refer :all]
+(ns monologue.knot.mapper-test
+  (:require [monologue.knot.mapper :refer :all]
+            [monologue.knot.constant :refer :all]
             [clojure.test :refer [deftest is]]))
 
 
@@ -160,10 +160,10 @@
 
 (deftest save-piece-test
   (let [subject "abcdefghijklmn"
-        page-name (str subject ".md")
+        filename (str subject ".md")
         content "nana"]
     (is (= nil (select-piece-by-subject db-config subject)))
-    (save-piece {:path    page-name
+    (save-piece {:path    filename
                  :content content})
 
     (let [piece (select-piece-by-subject db-config subject)]
@@ -175,13 +175,13 @@
 
 (deftest remove-piece-test
   (let [subject "abcdefghijklmn"
-        page-name (str subject ".md")
+        filename (str subject ".md")
         content "nana"]
     (is (= nil (select-piece-by-subject db-config subject)))
-    (save-piece {:path    page-name
+    (save-piece {:path    filename
                  :content content})
 
     (let [piece (select-piece-by-subject db-config subject)]
       (is (= subject (piece :subject)))
       (is (= content (piece :content))))
-    (remove-piece page-name)))
+    (remove-piece filename)))

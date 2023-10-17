@@ -1,11 +1,11 @@
-(ns me.monologue.mapper
+(ns monologue.knot.mapper
   (:require [clojure.java.jdbc :as jdbc]
             [clojure.string :as str]
             [honey.sql :as sql]
             [honey.sql.helpers :as sqh]
             [taoensso.timbre :as b]
             [nano-id.core :refer [custom]]
-            [me.monologue.constant :refer [db-config]]))
+            [monologue.knot.constant :refer [db-config]]))
 
 (def nano-pid (custom "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" 15))
 
@@ -284,6 +284,5 @@
                             (jdbc/execute! tx (sql/format {:truncate :knot_pieces}))
                             (jdbc/execute! tx (sql/format {:truncate :link_pieces}))
                             (jdbc/execute! tx (sql/format {:truncate :link_tag_piece}))))
-
 
 

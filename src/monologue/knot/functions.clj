@@ -1,10 +1,8 @@
-(ns me.monologue.functions
+(ns monologue.knot.functions
   (:require [clojure.java.jdbc :as jdbc]
-            [clojure.string :as str]
             [honey.sql :as sql]
             [hiccup2.core :as h]
-            [me.monologue.constant :refer [db-config]]
-            [me.monologue.mapper :as mmap]))
+            [monologue.knot.constant :refer [db-config]]))
 
 
 

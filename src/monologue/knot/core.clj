@@ -1,7 +1,6 @@
-(ns me.monologue.core
-  (:require [me.monologue.transfer :as mtra]
-            [me.monologue.router :as mrou]
-            [me.monologue.parser :as mpar]
+(ns monologue.knot.core
+  (:require [monologue.knot.transfer :as mtra]
+            [monologue.knot.router :as mrou]
             [taoensso.timbre :as timbre])
 
   (:gen-class))
@@ -14,7 +13,6 @@
 
 (defn -main
   [& _]
-  (mpar/load-template)
   (mtra/reload-schedule)
   (mrou/start))
 

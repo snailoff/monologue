@@ -1,13 +1,13 @@
-(ns me.monologue.transfer
+(ns monologue.knot.transfer
   (:require [clj-jgit.internal :refer [get-head-commit resolve-object]]
             [clj-jgit.porcelain :as jgit]
             [clj-jgit.querying :refer [changed-files-between-commits]]
             [clojure.string :as str]
             [me.raynes.fs :as fs]
             [immutant.scheduling :as cron]
-            [me.monologue.mapper :as data]
-            [me.monologue.constant :refer :all]
-            [me.monologue.parser :as mpar]
+            [monologue.knot.mapper :as data]
+            [monologue.knot.constant :refer :all]
+            [monologue.knot.parser :as mpar]
             [taoensso.timbre :as b]))
 
 
@@ -65,7 +65,7 @@
     :else (throw (Exception. (str "unknown action - " action))))
 
   (if (= path (knot-config :template-file))
-    (mpar/load-template)))
+    (mpar/reload-template)))
 
 (defn git-parse []
   (doseq [[path action] (git-changes)]
@@ -90,6 +90,7 @@
   (cron/schedule #(reload-md) (cron/cron "0 */1 * ? * *")))
 
 (comment
+  (parse-target? "@index.md")
   (git-clone)
   (git-parse)
   (git-changes)

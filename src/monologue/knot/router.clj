@@ -1,6 +1,6 @@
-(ns me.monologue.router
-  (:require [me.monologue.parser :as mpar]
-            [me.monologue.constant :refer [knot-config]]
+(ns monologue.knot.router
+  (:require [monologue.knot.parser :as mpar]
+            [monologue.knot.constant :refer [knot-config]]
             [muuntaja.core :as muun]
             [reitit.ring :as ring]
             [reitit.ring.coercion :as rrc]
@@ -18,21 +18,21 @@
                    :responses  {200 {}}
                    :handler    (fn [_]
                                  {:status  302
-                                  :headers {"Location" (str "/page/" (knot-config :main-page))}})}}]
+                                  :headers {"Location" (str "/page/" (knot-config :start-page))}})}}]
 
-       ["/page/:page-name" {:get {:parameters {:path {:page-name string?}}
+       ["/page/:req-name" {:get {:parameters {:path {:req-name string?}}
                                   :responses  {200 {}}
-                                  :handler    (fn [{{{:keys [page-name]} :path} :parameters}]
+                                  :handler    (fn [{{{:keys [req-name]} :path} :parameters}]
                                                 {:status  200
                                                  :headers {"Content-Type" "text/html"}
-                                                 :body    (mpar/parse page-name)})}}]
-       ["/external/:page-name/:action" {:post {:parameters {:path {:page-name string?
+                                                 :body    (mpar/parse req-name)})}}]
+       ["/external/:page-subject/:action" {:post {:parameters {:path {:page-subject string?
                                                                    :action    string?}}
                                                :responses  {200 {}}
-                                               :handler    (fn [{{{:keys [page-name action]} :path} :parameters}]
+                                               :handler    (fn [{{{:keys [page-subject action]} :path} :parameters}]
                                                              {:status  200
                                                               :headers {"Content-Type" "text/html"}
-                                                              :body    (str page-name action)})}}]]
+                                                              :body    (str page-subject action)})}}]]
       {:data {:coercion   reitit.coercion.spec/coercion
               :muuntaja   muun/instance
               :middleware [rrm-muuntaja/format-middleware
