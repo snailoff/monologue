@@ -1,4 +1,4 @@
-(ns monologue.backend.constant
+(ns me.monologue.constant
   (:require [environ.core :refer [env]]))
 
 (def db-config {:dbtype      "postgresql"
@@ -9,10 +9,14 @@
                 :password    (env :monologue-db-password)
                 :auto-commit true})
 
-(def git-config {:login     (env :monologue-git-user)
-                 :pw        (env :monologue-git-token)
-                 :repo      (env :monologue-git-repository)
-                 :workspace (env :monologue-git-workspace)})
+(def git-config {:login (env :monologue-git-user)
+                 :pw    (env :monologue-git-token)
+                 :repo  (env :monologue-git-repository)})
+
+(def knot-config {:workspace (env :monologue-knot-workspace)
+                  :resource  (env :monologue-knot-resource)
+                  :main-page "main"
+                  :default-page "tags"})
 
 (def memo (atom {:git-commit-id-save? true}))
 (defn memo-set [key val] (swap! memo assoc-in [key] val))

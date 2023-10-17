@@ -1,11 +1,12 @@
-(ns monologue.backend.gitter
+(ns me.monologue.transfer
   (:require [clj-jgit.internal :refer [get-head-commit resolve-object]]
             [clj-jgit.porcelain :as jgit]
             [clj-jgit.querying :refer [changed-files-between-commits]]
             [clojure.string :as str]
+            [me.raynes.fs :as fs]
             [immutant.scheduling :as cron]
-            [monologue.backend.mapper :as data]
-            [monologue.backend.constant :refer :all]
+            [me.monologue.mapper :as data]
+            [me.monologue.constant :refer :all]
             [taoensso.timbre :as b]))
 
 
@@ -13,7 +14,7 @@
 
 (defn git-changes []
   (jgit/with-credentials git-config
-                         (let [repo (jgit/load-repo (git-config :workspace))
+                         (let [repo (jgit/load-repo (knot-config :workspace))
                                latest-commit (get-head-commit repo)
                                saved-commit (data/select-meta-content META-GIT-COMMIT-ID)
                                since-commit (if (nil? saved-commit)
@@ -33,17 +34,17 @@
   (jgit/with-credentials git-config
                          (jgit/git-clone (git-config :repo)
                                          :branch "main"
-                                         :dir (git-config :workspace))))
+                                         :dir (knot-config :workspace))))
 
 (defn git-pull []
   (try
     (jgit/with-credentials git-config
-                           (jgit/git-pull (jgit/load-repo (git-config :workspace))))
+                           (jgit/git-pull (jgit/load-repo (knot-config :workspace))))
     (catch Exception _
       (git-clone))))
 
 (defn parse-target? [path]
-  (let [file (clojure.string/replace path #".*/" "")]
+  (let [file (str/replace path #".*/" "")]
     (and (every? nil? [(re-find #"^\." path)
                        (re-find #"^/?files/" path)
                        (re-find #"^-" file)])
@@ -52,18 +53,25 @@
 
 (defn slurp-file [path]
   {:path    path
-   :content (slurp (str (git-config :workspace) "/" path))})
+   :content (slurp (str (knot-config :workspace) "/" path))})
 
 (defn git-parse []
   (doseq [[path action] (git-changes)]
-    (println "path : " path)
+    (println "parse path : " path)
     (if (parse-target? path)
       (cond
         (or (= action :add)
             (= action :edit)) (data/save-piece (slurp-file path))
         (= action :delete) (data/remove-piece path)
         :else (throw (Exception. (str "unknown action - " action))))
-      (b/info "** ignored - " path))))
+
+      (cond
+        (or (= action :add)
+            (= action :edit)) (fs/copy+ (str (knot-config :workspace) "/" path)
+                                        (str (knot-config :resource) "/" path))
+        (= action :delete) (fs/delete (str (knot-config :resource) "/" path))
+        :else (throw (Exception. (str "unknown action - " action))))
+      )))
 
 (defn reload-md []
   (git-pull)
@@ -75,6 +83,15 @@
   (cron/schedule #(reload-md) (cron/cron "0 */1 * ? * *")))
 
 (comment
+
+  (fs/copy+ (str (.getPath (fs/absolute "."))
+                 "/resources/public/knot.html")
+            "/tmp/knot-resource/knot.html")
+
+  (parse-target? "knot.html")
+  (fs/file (knot-config :resource))
+
+
   (git-clone)
   (git-parse)
   (git-changes)

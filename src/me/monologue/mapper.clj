@@ -1,11 +1,11 @@
-(ns monologue.backend.mapper
+(ns me.monologue.mapper
   (:require [clojure.java.jdbc :as jdbc]
             [clojure.string :as str]
             [honey.sql :as sql]
             [honey.sql.helpers :as sqh]
             [taoensso.timbre :as b]
             [nano-id.core :refer [custom]]
-            [monologue.backend.constant :refer [db-config]]))
+            [me.monologue.constant :refer [db-config]]))
 
 (def nano-pid (custom "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" 15))
 
@@ -77,30 +77,37 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; link (knot to piece)
 
-;TODO tag => knot table. column
+(defn select-tags []
+  (let [rs (jdbc/query db-config (sql/format {:select   :tag_name
+                                              :from     :link_tag_piece
+                                              :group-by [:tag_name]
+                                              :order-by [[:tag_name]]}))]
+    (if (nil? rs) nil rs)))
 
-(defn upsert-link-knot-piece [conn tag-id piece-id]
+
+
+(defn upsert-link-tag-piece [conn tag-name piece-id]
   (jdbc/execute! conn (-> (sqh/insert-into :link_tag_piece)
-                          (sqh/values [{:tag_name   tag-id
+                          (sqh/values [{:tag_name tag-name
                                         :piece-id piece-id}])
                           (sqh/on-conflict :tag_name :piece-id)
                           sqh/do-nothing
                           sql/format)))
 
-(defn select-link-knot-piece-by-knot-id [conn knot-id]
+(defn select-link-tag-piece-by-tag-name [conn tag-name]
   (jdbc/query conn (sql/format {:select :*
                                 :from   :link_tag_piece
-                                :where  [:= :tag_name knot-id]})))
-(defn select-link-knot-piece-by-piece-id [conn piece-id]
+                                :where  [:= :tag_name tag-name]})))
+(defn select-link-tag-piece-by-piece-id [conn piece-id]
   (jdbc/query conn (sql/format {:select :*
                                 :from   :link_tag_piece
                                 :where  [:= :piece_id piece-id]})))
 
-(defn delete-link-knot-piece-by-knot-id [conn knot-id]
+(defn delete-link-tag-piece-by-tag-name [conn tag-name]
   (jdbc/execute! conn (sql/format {:delete-from :link_tag_piece
-                                   :where       [:= :tag_name knot-id]})))
+                                   :where       [:= :tag_name tag-name]})))
 
-(defn delete-link-knot-piece-by-piece-id [conn piece-id]
+(defn delete-link-tag-piece-by-piece-id [conn piece-id]
   (jdbc/execute! conn (sql/format {:delete-from :link_tag_piece
                                    :where       [:= :piece_id piece-id]})))
 
@@ -166,11 +173,10 @@
 
 (defn parse-tag [piece-id piece-content]
   (jdbc/with-db-transaction [tx db-config]
-                            (delete-link-knot-piece-by-piece-id tx piece-id)
-                            (doseq [knot (re-seq #"(?<=^|[^\w])#([^\s#]+)" piece-content)]
-                              (let [knot-subject (second knot)
-                                    knot-id (load-or-save-new-piece tx knot-subject)] ; TODO 없으면 생성
-                                (upsert-link-knot-piece tx knot-id piece-id)))))
+                            (delete-link-tag-piece-by-piece-id tx piece-id)
+                            (doseq [tag (re-seq #"(?<=^|[^\w])#([^\s#]+)" piece-content)]
+                              (let [tag-name (second tag)]
+                                (upsert-link-tag-piece tx tag-name piece-id)))))
 
 
 
@@ -183,7 +189,7 @@
 
 (defn parse-link [piece-from-id piece-content]
   (jdbc/with-db-transaction [tx db-config]
-                            (delete-link-knot-piece-by-knot-id tx piece-from-id)
+                            (delete-link-piece-piece-by-from-id tx piece-from-id)
                             (doseq [link (re-seq #"\[\[(.*?)\]\]" piece-content)]
                               (let [piece-subject (second link)
                                     piece-to-id (load-or-save-new-piece tx piece-subject)]
@@ -232,7 +238,7 @@
                               (if-let [piece (select-piece-by-subject tx subject)]
                                 (do
                                   (delete-piece tx (piece :id))
-                                  (delete-link-knot-piece-by-piece-id tx (piece :id))
+                                  (delete-link-tag-piece-by-piece-id tx (piece :id))
                                   (delete-link-piece-piece-by-from-id tx (piece :id))
                                   (delete-link-piece-piece-by-to-id tx (piece :id)))))))
 
@@ -251,20 +257,12 @@
                                               :limit    1}))]
     (if (empty? rs) nil (first rs))))
 
-(defn pieces-recent-many
-  ([limit]
-   (let [rs (jdbc/query db-config (sql/format {:select   [:*]
-                                               :from     :knot_pieces
-                                               :order-by [[:mtime :desc]]
-                                               :limit    limit}))]
-     (if (empty? rs) nil rs)))
-  ([limit year]
-   (let [rs (jdbc/query db-config (sql/format {:select   [:*]
-                                               :from     :knot_pieces
-                                               :where    [:= :%substring.rdate.0.5 year]
-                                               :order-by [[:mtime :desc]]
-                                               :limit    limit}))]
-     (if (empty? rs) nil rs))))
+(defn pieces-recent-many [limit]
+  (let [rs (jdbc/query db-config (sql/format {:select   [:*]
+                                              :from     :knot_pieces
+                                              :order-by [[:mtime :desc]]
+                                              :limit    limit}))]
+    (if (empty? rs) nil rs)))
 
 
 (defn pieces-years []
@@ -286,5 +284,6 @@
                             (jdbc/execute! tx (sql/format {:truncate :knot_pieces}))
                             (jdbc/execute! tx (sql/format {:truncate :link_pieces}))
                             (jdbc/execute! tx (sql/format {:truncate :link_tag_piece}))))
+
 
 

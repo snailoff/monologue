@@ -1,6 +1,6 @@
-(ns monologue.backend.generator
-  (:require [monologue.backend.mapper :as mmap]
-            [monologue.backend.constant :refer [db-config]]
+(ns me.monologue.generator
+  (:require [me.monologue.mapper :as mmap]
+            [me.monologue.constant :refer [db-config]]
             [muuntaja.core :as muun]
             [reitit.ring :as ring]
             [reitit.ring.coercion :as rrc]
@@ -67,38 +67,16 @@
                   hic-footer]
                  ]])))
 
-(defn html-content-pages [pieces years]
-  (str (h/html
-         [:div
-          [:h2.title.strong "최근 페이지"]
-          (map #(vec [:p [:a {:href (str "/page/" (% :subject))} (% :subject)]]) pieces)
-          [:p "..."]]
-         [:br]
-         [:div.mt2
-          [:h2.title.strong "모든 페이지"]
-          (map #(vec [:p [:a {:href (str "/pages/" (% :substring))}
-                          (% :substring)]
-                      [:small.pl-3 "(" (% :count) ")"]]) years)])))
 
-(defn html-content-pages-in-year [pieces year]
-  (str (h/html
-         [:div
-          [:p.pb-3 [:span.icon-text
-                    [:span.icon [:i.fas.fa-caret-left]]
-                    [:a {:href "/pages"} "pages"]]]
-          [:h2.title.strong year]
-          (map #(vec [:p [:a {:href (str "/page/" (% :subject))} (% :subject)]]) pieces)]
-         ))
-  )
-
-(defn html-content-page [piece]
+(defn html-content-page [piece parsed-content]
   (str (h/html
          (if-not (nil? piece)
            [:div
             [:h1.title [:strong (piece :subject)]]
             [:h5.subtitle.mb-2 (piece :summary)]
-            [:content (piece :content)]]
-           [:div "not found"]))))
+            [:content (h/raw parsed-content)]]
+           [:i "not found"]))))
+
 
 
 

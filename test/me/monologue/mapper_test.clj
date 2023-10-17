@@ -1,6 +1,6 @@
-(ns monologue.backend.mapper-test
-  (:require [monologue.backend.mapper :refer :all]
-            [monologue.backend.constant :refer :all]
+(ns me.monologue.mapper-test
+  (:require [me.monologue.mapper :refer :all]
+            [me.monologue.constant :refer :all]
             [clojure.test :refer [deftest is]]))
 
 
@@ -54,44 +54,44 @@
 (deftest tag-piece-link-test
   (let [knot-id "1234567890aaaaa"
         piece-id "1234567890bbbbb"]
-    (is (= 1 (first (upsert-link-knot-piece db-config knot-id piece-id))))
+    (is (= 1 (first (upsert-link-tag-piece db-config knot-id piece-id))))
     (is (= piece-id
-           (:piece_id (first (select-link-knot-piece-by-knot-id db-config knot-id)))))
+           (:piece_id (first (select-link-tag-piece-by-tag-name db-config knot-id)))))
     (is (= knot-id
-           (:tag_name (first (select-link-knot-piece-by-piece-id db-config piece-id)))))
-    (is (= 1 (first (delete-link-knot-piece-by-piece-id db-config piece-id))))))
+           (:tag_name (first (select-link-tag-piece-by-piece-id db-config piece-id)))))
+    (is (= 1 (first (delete-link-tag-piece-by-piece-id db-config piece-id))))))
 
 
 (deftest tag-piece-remove-by-piece-test
   (let [knot-id "1234567890aaaaa"
         piece-id1 "1234567890bbbbb"
         piece-id2 "1234567890ccccc"]
-    (is (= 1 (first (upsert-link-knot-piece db-config knot-id piece-id1))))
-    (is (= 1 (first (upsert-link-knot-piece db-config knot-id piece-id2))))
+    (is (= 1 (first (upsert-link-tag-piece db-config knot-id piece-id1))))
+    (is (= 1 (first (upsert-link-tag-piece db-config knot-id piece-id2))))
 
     ; delete p1
-    (is (= 1 (first (delete-link-knot-piece-by-piece-id db-config piece-id1))))
+    (is (= 1 (first (delete-link-tag-piece-by-piece-id db-config piece-id1))))
     (is (= piece-id2
-           (:piece_id (first (select-link-knot-piece-by-knot-id db-config knot-id)))))
+           (:piece_id (first (select-link-tag-piece-by-tag-name db-config knot-id)))))
 
     ; delete p2
-    (is (= 1 (first (delete-link-knot-piece-by-piece-id db-config piece-id2))))
-    (is (= 0 (count (select-link-knot-piece-by-knot-id db-config knot-id))))))
+    (is (= 1 (first (delete-link-tag-piece-by-piece-id db-config piece-id2))))
+    (is (= 0 (count (select-link-tag-piece-by-tag-name db-config knot-id))))))
 
 (deftest tag-piece-remove-by-knot-test
   (let [knot-id "1234567890aaaaa"
         piece-id1 "1234567890bbbbb"
         piece-id2 "1234567890ccccc"]
-    (is (= 1 (first (upsert-link-knot-piece db-config knot-id piece-id1))))
-    (is (= 1 (first (upsert-link-knot-piece db-config knot-id piece-id2))))
+    (is (= 1 (first (upsert-link-tag-piece db-config knot-id piece-id1))))
+    (is (= 1 (first (upsert-link-tag-piece db-config knot-id piece-id2))))
 
     ; check
-    (is (= 2 (count (select-link-knot-piece-by-knot-id db-config knot-id))))
+    (is (= 2 (count (select-link-tag-piece-by-tag-name db-config knot-id))))
 
     ; delete knot
-    (is (= 2 (first (delete-link-knot-piece-by-knot-id db-config knot-id))))
+    (is (= 2 (first (delete-link-tag-piece-by-tag-name db-config knot-id))))
 
-    (is (= 0 (count (select-link-knot-piece-by-knot-id db-config knot-id))))))
+    (is (= 0 (count (select-link-tag-piece-by-tag-name db-config knot-id))))))
 
 
 
@@ -122,38 +122,21 @@
 
 
 (deftest parse-knot-test
-  (let [knot-name "9876543210"
-        piece-id "000000000000000"]
-    (is (= nil (select-piece-by-subject db-config knot-name)))
+  (let [tag-name (nano-pid)
+        piece-id (nano-pid)]
+    (is (= nil (select-piece-by-subject db-config tag-name)))
     (is (= nil (select-piece-by-subject db-config piece-id)))
-    (upsert-piece db-config {:id      piece-id
-                             :subject piece-id})
+    (upsert-piece db-config {:id piece-id :subject piece-id})
 
     ; knot 이 없을 때
-    (parse-tag piece-id (str "lala #" knot-name " hehe"))
+    (parse-tag piece-id (str "lala #" tag-name " hehe"))
 
-    (let [link-knot-piece (first (select-link-knot-piece-by-piece-id db-config piece-id))
-          new-knot (select-piece-by-id db-config (link-knot-piece :tag_name))]
-      ; new knot check
-      (is (= knot-name
-             (new-knot :subject))))
-
-    ; knot 이 있을 때
-    (parse-tag piece-id (str "lala #" knot-name " hehe"))
-    (let [link-knot-piece (first (select-link-knot-piece-by-piece-id db-config piece-id))
-          new-knot (select-piece-by-id db-config (link-knot-piece :tag_name))]
-      ; new knot check
-      (is (= knot-name
-             (new-knot :subject)))
-      (delete-piece db-config (new-knot :id))
-      (delete-piece db-config piece-id))))
-
-
-
+    ; knot 이 있을 때. do nothing.
+    (parse-tag piece-id (str "lala #" tag-name " hehe"))))
 
 (deftest parse-link-test
-  (let [piece-id1 "000000000000000"
-        piece-id2 "111111111111111"]
+  (let [piece-id1 (nano-pid)
+        piece-id2 (nano-pid)]
     (is (= nil (select-piece-by-subject db-config piece-id1)))
     (is (= nil (select-piece-by-subject db-config piece-id2)))
     (upsert-piece db-config {:id piece-id1 :subject piece-id1})

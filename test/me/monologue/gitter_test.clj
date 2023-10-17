@@ -1,5 +1,5 @@
-(ns monologue.backend.gitter-test
-  (:require [monologue.backend.gitter :as gitter]
+(ns me.monologue.gitter-test
+  (:require [me.monologue.transfer :as gitter]
             [clojure.test :refer [deftest is]]))
 
 
