@@ -65,20 +65,6 @@
       (html-wrap req-name {:subject "404" :summary "" :content (str "<i>(knot-config :default-page) 없음 - " (knot-config :default-page))}))))
 
 
-(let [req-name"202307301226"
-      content ((mmap/select-piece-by-subject db-config req-name) :content)]
-  ;(html-wrap req-name {:content content})
-
-  ;(parse-content content req-name)
-  (str/replace @mem-template
-               #"::page-content::"
-               (str/re-quote-replacement "<br />$ ystemctl --user enable caffeine <br />```<br /><br />")
-               ;"caffeine 자동 시작.<br /><br />~/.config/systemd/user/caffeine.service<br />```<br />[Unit]<br />Description=caffeine<br /><br />[Service]<br />Type=simple<br />ExecStart=/usr/bin/caffeine<br />Restart=on-failure<br />StartLimitIntervalSec=10 # 재시도시 딜레이<br />StartLimitBurst=5 # 재시도 횟수<br /><br />[Install]<br />WantedBy=default.target<br /><br />```<br /><br /><br />```<br />$ ystemctl --user enable caffeine <br />```<br /><br />"
-               )
-
-  )
-(parse-content ((mmap/select-piece-by-subject db-config "202307301226") :content)
-               "202307301226")
 
 
 ;(reload-template)

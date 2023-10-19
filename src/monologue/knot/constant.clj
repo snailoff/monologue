@@ -18,7 +18,7 @@
                   :start-page "@index"
                   :default-page "@tags"
                   :404-page "@404"
-                  :template-file "knot.html"})
+                  :template-file "@knot.html"})
 (def memo (atom {:git-commit-id-save? true}))
 (defn memo-set [key val] (swap! memo assoc-in [key] val))
 

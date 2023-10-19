@@ -21,18 +21,18 @@
                                   :headers {"Location" (str "/page/" (knot-config :start-page))}})}}]
 
        ["/page/:req-name" {:get {:parameters {:path {:req-name string?}}
-                                  :responses  {200 {}}
-                                  :handler    (fn [{{{:keys [req-name]} :path} :parameters}]
-                                                {:status  200
-                                                 :headers {"Content-Type" "text/html"}
-                                                 :body    (mpar/parse req-name)})}}]
+                                 :responses  {200 {}}
+                                 :handler    (fn [{{{:keys [req-name]} :path} :parameters}]
+                                               {:status  200
+                                                :headers {"Content-Type" "text/html"}
+                                                :body    (mpar/parse req-name)})}}]
        ["/external/:page-subject/:action" {:post {:parameters {:path {:page-subject string?
-                                                                   :action    string?}}
-                                               :responses  {200 {}}
-                                               :handler    (fn [{{{:keys [page-subject action]} :path} :parameters}]
-                                                             {:status  200
-                                                              :headers {"Content-Type" "text/html"}
-                                                              :body    (str page-subject action)})}}]]
+                                                                      :action       string?}}
+                                                  :responses  {200 {}}
+                                                  :handler    (fn [{{{:keys [page-subject action]} :path} :parameters}]
+                                                                {:status  200
+                                                                 :headers {"Content-Type" "text/html"}
+                                                                 :body    (str page-subject action)})}}]]
       {:data {:coercion   reitit.coercion.spec/coercion
               :muuntaja   muun/instance
               :middleware [rrm-muuntaja/format-middleware
