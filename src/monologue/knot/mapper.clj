@@ -65,13 +65,12 @@
                           (sqh/on-conflict :subject)
                           (sqh/do-update-set :summary :content :mtime)
                           sql/format)))
+;; => #'monologue.knot.mapper/upsert-piece
+
 
 (defn delete-piece [conn id]
   (jdbc/execute! conn (sql/format {:delete-from :knot_pieces
                                    :where       [:= :id id]})))
-
-
-
 
 
 
@@ -173,39 +172,49 @@
 
 (defn parse-tag [piece-id piece-content]
   (jdbc/with-db-transaction [tx db-config]
-                            (delete-link-tag-piece-by-piece-id tx piece-id)
-                            (doseq [tag (re-seq #"(?<=^|[^\w])#([^\s#]+)" piece-content)]
-                              (let [tag-name (second tag)]
-                                (upsert-link-tag-piece tx tag-name piece-id)))))
+    (delete-link-tag-piece-by-piece-id tx piece-id)
+    (doseq [tag (re-seq #"(?i)#\+filetags:\s*:([^\s]+?):" piece-content)]
+      (doseq [tag-name (str/split (second tag) #":")]
+        (if-not (empty? tag-name)
+          (upsert-link-tag-piece tx tag-name piece-id)
+          ())))))
 
 
+(comment
+  (let [piece-id "id"
+        piece-content "owijeifj \n jeje #+filetags: :hehe: jije"]
+    (doseq [tag (re-seq #"(?i)#\+filetags:\s*:([^\s]+):" piece-content)]
+      (println "tag: " tag)
+      (doseq [tag-name (str/split (second tag) #":")]
+        (println "tag: " tag-name)
+        (upsert-link-tag-piece db-config tag-name piece-id))))
+  (parse-tag "C2VL4NmQd8UlwKx" "owijeifj \n jeje #+filetags: :hehe: jije")
 
+  (doseq [tag (re-seq #":([^\s]+):" "owijofwiej :hehe: ijweifh")]
+    (println tag))
 
-
-
+  (str/split "123:456" #":")
+  (str/split "123" #":")
+  (re-seq #"\[\[(.*?)\](\[.*?\])?\]" "[[abc][123]]")
+  (second (re-seq #"\[\[(.*?)\](\[.*?\])?\]" "[[abc][123]]")))
 
 
 
 
 (defn parse-link [piece-from-id piece-content]
   (jdbc/with-db-transaction [tx db-config]
-                            (delete-link-piece-piece-by-from-id tx piece-from-id)
-                            (doseq [link (re-seq #"\[\[(.*?)\]\]" piece-content)]
-                              (let [piece-subject (second link)
-                                    piece-to-id (load-or-save-new-piece tx piece-subject)]
-                                (insert-link-piece-piece tx piece-from-id piece-to-id)))))
-
-
-
-
-
-
+    (delete-link-piece-piece-by-from-id tx piece-from-id)
+    (doseq [link (re-seq #"\[\[(.*?)\](\[.*?\])?\]" piece-content)]
+      (if (nil? (re-matches #"^(\.?/|[a-z]+?:).*" (second link)))
+        (let [piece-to-id (load-or-save-new-piece tx (second link))]
+          (insert-link-piece-piece tx piece-from-id piece-to-id))
+        ()))))
 
 
 (defn save-piece [{:keys [path content]}]
   (println "** knot-save : " path)
   (let [piece-id (nano-pid)
-        subject (str/replace path #".md" "")
+        subject (str/replace path #".org" "")
         summary (re-find #"%%\s*summary:\s*(.*) %%" content)
         ;content (str/replace content-raw #"%%(.*?)%%\r?\n?" "")
         ]
@@ -221,30 +230,25 @@
 
 
 (comment
-  (re-matches #"^.*[0-9]{12}.*$" "2024/202404142323.md")
+  (re-matches #"^\.?/.*" "./file.jpg")
+  (re-matches #"^.*[0-9]{12}.*$" "2024/202404142323.org")
 
-  (let [str "index.md" #_"2023/202304151432.md"]
+  (let [str "index.org" #_"2023/202304151432.md"]
     (println (if (re-matches #"^.*[0-9]{12}.*$" str)
                (str/replace str #"^.*20[0-9]{2}(....)[0-9]{4}.*$" "$1") "no"))
-    #_(println (str/replace str #"^.*20[0-9]{4}(..)[0-9]{4}.*$" "$1"))
-    )
-  )
+    #_(println (str/replace str #"^.*20[0-9]{4}(..)[0-9]{4}.*$" "$1"))))
 
 
 (defn remove-piece [path]
   (println "** knot-remove : " path)
-  (let [subject (str/replace path #".md" "")]
+  (let [subject (str/replace path #".org" "")]
     (jdbc/with-db-transaction [tx db-config]
-                              (if-let [piece (select-piece-by-subject tx subject)]
-                                (do
-                                  (delete-piece tx (piece :id))
-                                  (delete-link-tag-piece-by-piece-id tx (piece :id))
-                                  (delete-link-piece-piece-by-from-id tx (piece :id))
-                                  (delete-link-piece-piece-by-to-id tx (piece :id)))))))
-
-
-
-
+      (if-let [piece (select-piece-by-subject tx subject)]
+        (do
+          (delete-piece tx (piece :id))
+          (delete-link-tag-piece-by-piece-id tx (piece :id))
+          (delete-link-piece-piece-by-from-id tx (piece :id))
+          (delete-link-piece-piece-by-to-id tx (piece :id)))))))
 
 
 
@@ -270,8 +274,7 @@
                                               :from     :knot_pieces
                                               :where    [:!= :rdate nil]
                                               :group-by [:%substring.rdate.0.5]
-                                              :order-by [:%substring.rdate.0.5]
-                                              }))]
+                                              :order-by [:%substring.rdate.0.5]}))]
     (if (empty? rs) nil rs)))
 
 
@@ -280,9 +283,9 @@
 
 (defn clear-all []
   (jdbc/with-db-transaction [tx db-config]
-                            (jdbc/execute! tx (sql/format {:truncate :knot_meta}))
-                            (jdbc/execute! tx (sql/format {:truncate :knot_pieces}))
-                            (jdbc/execute! tx (sql/format {:truncate :link_pieces}))
-                            (jdbc/execute! tx (sql/format {:truncate :link_tag_piece}))))
+    (jdbc/execute! tx (sql/format {:truncate :knot_meta}))
+    (jdbc/execute! tx (sql/format {:truncate :knot_pieces}))
+    (jdbc/execute! tx (sql/format {:truncate :link_pieces}))
+    (jdbc/execute! tx (sql/format {:truncate :link_tag_piece}))))
 
 

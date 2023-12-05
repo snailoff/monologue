@@ -9,6 +9,7 @@
             [clojure.string :as str]))
 
 (def date-formatter (f/with-zone (f/formatter "yyyy년 MM월 dd일 HH시 mm분") (t/time-zone-for-id "Asia/Seoul")))
+
 (defn sqltime2str [date]
   (println "*** " date)
   (if-not (nil? date)
@@ -45,7 +46,6 @@
       (str/replace #"\n" "<br />")))
 
 
-
 (defn html-wrap [req-name {:keys [subject summary ctime mtime content]}]
   (-> (parse-functions @mem-template req-name)
       (str/replace #"::req-name::" req-name)
@@ -53,7 +53,7 @@
       (str/replace #"::page-subject::" (str subject))
       (str/replace #"::page-summary::" (str summary))
       (str/replace #"::page-ctime::" (sqltime2str ctime))
-      ;(str/replace #"::page-mtime::" (sqltime2str mtime))
+      (str/replace #"::page-mtime::" (sqltime2str mtime))
       (str/replace #"::page-content::" (str/re-quote-replacement (parse-content content req-name)))))
 
 
@@ -63,8 +63,6 @@
     (if-let [default-p (mmap/select-piece-by-subject db-config (knot-config :default-page))]
       (html-wrap req-name default-p)
       (html-wrap req-name {:subject "404" :summary "" :content (str "<i>(knot-config :default-page) 없음 - " (knot-config :default-page))}))))
-
-
 
 
 ;(reload-template)

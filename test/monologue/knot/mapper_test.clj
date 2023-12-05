@@ -122,14 +122,14 @@
 
 
 (deftest parse-knot-test
-  (let [tag-name (nano-pid)
+  (let [tag-name ":tag1:" 
         piece-id (nano-pid)]
     (is (= nil (select-piece-by-subject db-config tag-name)))
     (is (= nil (select-piece-by-subject db-config piece-id)))
     (upsert-piece db-config {:id piece-id :subject piece-id})
 
     ; knot 이 없을 때
-    (parse-tag piece-id (str "lala #" tag-name " hehe"))
+    (parse-tag piece-id (str "lala #+filetags: " tag-name " hehe"))
 
     ; knot 이 있을 때. do nothing.
     (parse-tag piece-id (str "lala #" tag-name " hehe"))))
@@ -160,7 +160,7 @@
 
 (deftest save-piece-test
   (let [subject "abcdefghijklmn"
-        filename (str subject ".md")
+        filename (str subject ".org")
         content "nana"]
     (is (= nil (select-piece-by-subject db-config subject)))
     (save-piece {:path    filename
@@ -175,7 +175,7 @@
 
 (deftest remove-piece-test
   (let [subject "abcdefghijklmn"
-        filename (str subject ".md")
+        filename (str subject ".org")
         content "nana"]
     (is (= nil (select-piece-by-subject db-config subject)))
     (save-piece {:path    filename

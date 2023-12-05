@@ -15,32 +15,32 @@
 
 (defn git-changes []
   (jgit/with-credentials git-config
-                         (let [repo (jgit/load-repo (knot-config :workspace))
-                               latest-commit (get-head-commit repo)
-                               saved-commit (data/select-meta-content META-GIT-COMMIT-ID)
-                               since-commit (if (nil? saved-commit)
-                                              ((last (jgit/git-log repo :all? true)) :id)
-                                              (resolve-object saved-commit repo))]
-                           (if (not= (.name since-commit) (.name latest-commit))
-                             (do
-                               (if (@memo :git-commit-id-save?)
-                                 (data/save-meta META-GIT-COMMIT-ID (.name latest-commit))
-                                 ())
-                               (changed-files-between-commits repo
-                                                              since-commit
-                                                              latest-commit))
-                             ()))))
+    (let [repo (jgit/load-repo (knot-config :workspace))
+          latest-commit (get-head-commit repo)
+          saved-commit (data/select-meta-content META-GIT-COMMIT-ID)
+          since-commit (if (nil? saved-commit)
+                         ((last (jgit/git-log repo :all? true)) :id)
+                         (resolve-object saved-commit repo))]
+      (if (not= (.name since-commit) (.name latest-commit))
+        (do
+          (if (@memo :git-commit-id-save?)
+            (data/save-meta META-GIT-COMMIT-ID (.name latest-commit))
+            ())
+          (changed-files-between-commits repo
+                                         since-commit
+                                         latest-commit))
+        ()))))
 
 (defn git-clone []
   (jgit/with-credentials git-config
-                         (jgit/git-clone (git-config :repo)
-                                         :branch "main"
-                                         :dir (knot-config :workspace))))
+    (jgit/git-clone (git-config :repo)
+                    :branch "main"
+                    :dir (knot-config :workspace))))
 
 (defn git-pull []
   (try
     (jgit/with-credentials git-config
-                           (jgit/git-pull (jgit/load-repo (knot-config :workspace))))
+      (jgit/git-pull (jgit/load-repo (knot-config :workspace))))
     (catch Exception _
       (git-clone))))
 
@@ -49,7 +49,7 @@
     (and (every? nil? [(re-find #"^\." path)
                        (re-find #"^/?files/" path)
                        (re-find #"^-" file)])
-         (every? some? [(re-find #"\.md$" path)]))))
+         (every? some? [(re-find #"\.org$" path)]))))
 
 
 (defn slurp-file [path]
@@ -65,7 +65,8 @@
     :else (throw (Exception. (str "unknown action - " action))))
 
   (if (= path (knot-config :template-file))
-    (mpar/reload-template)))
+    (mpar/reload-template)
+    nil))
 
 (defn git-parse []
   (doseq [[path action] (git-changes)]
@@ -77,24 +78,26 @@
         (= action :delete) (data/remove-piece path)
         :else (throw (Exception. (str "unknown action - " action))))
 
-      (resource-task action path)
-      )))
+      (resource-task action path))))
 
-(defn reload-md []
+(defn reload-text []
   (git-pull)
   (git-parse))
 
 
 (defn reload-schedule []
   (b/info "** reload")
-  (cron/schedule #(reload-md) (cron/cron "0 */1 * ? * *")))
+  (cron/schedule #(reload-text) (cron/cron "0 */1 * ? * *")))
 
 (comment
-  (parse-target? "@index.md")
-  (git-clone)
+  (parse-target? "@index.org")
+  (parse-target? "202310052159_3.jpg")
+
+  (data/save-piece (slurp-file "202304082235.org"))
+
   (git-parse)
   (git-changes)
   (git-pull)
   (memo-set :git-commit-id-save? true)
   (memo-set :git-commit-id-save? false)
-  )
+  (inc 10))

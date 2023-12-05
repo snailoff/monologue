@@ -23,3 +23,7 @@
 (defn memo-set [key val] (swap! memo assoc-in [key] val))
 
 (def META-GIT-COMMIT-ID "GIT-COMMIT-ID")
+
+(comment
+  db-config
+  knot-config)

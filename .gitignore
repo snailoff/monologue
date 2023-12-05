@@ -24,3 +24,4 @@ resources/public/assets/2004/files/
 .clj-kondo/
 .lein-env
 resources/public/assets/
+.calva/
